@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "21-online": {
+    "swick-card-game": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/21-online",
+            "outputPath": "dist/swick-card-game",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": [
@@ -75,10 +75,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "21-online:build:production"
+              "browserTarget": "swick-card-game:build:production"
             },
             "development": {
-              "browserTarget": "21-online:build:development"
+              "browserTarget": "swick-card-game:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -86,7 +86,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "21-online:build"
+            "browserTarget": "swick-card-game:build"
           }
         },
         "test": {
@@ -112,11 +112,11 @@
         "cypress-run": {
           "builder": "@cypress/schematic:cypress",
           "options": {
-            "devServerTarget": "21-online:serve"
+            "devServerTarget": "swick-card-game:serve"
           },
           "configurations": {
             "production": {
-              "devServerTarget": "21-online:serve:production"
+              "devServerTarget": "swick-card-game:serve:production"
             }
           }
         },
@@ -130,27 +130,27 @@
         "ct": {
           "builder": "@cypress/schematic:cypress",
           "options": {
-            "devServerTarget": "21-online:serve",
+            "devServerTarget": "swick-card-game:serve",
             "watch": true,
             "headless": false,
             "testingType": "component"
           },
           "configurations": {
             "development": {
-              "devServerTarget": "21-online:serve:development"
+              "devServerTarget": "swick-card-game:serve:development"
             }
           }
         },
         "e2e": {
           "builder": "@cypress/schematic:cypress",
           "options": {
-            "devServerTarget": "21-online:serve",
+            "devServerTarget": "swick-card-game:serve",
             "watch": true,
             "headless": false
           },
           "configurations": {
             "production": {
-              "devServerTarget": "21-online:serve:production"
+              "devServerTarget": "swick-card-game:serve:production"
             }
           }
         },
@@ -164,6 +164,7 @@
     "schematicCollections": [
       "@cypress/schematic",
       "@schematics/angular"
-    ]
+    ],
+    "analytics": false
   }
 }

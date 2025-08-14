@@ -1,10 +1,10 @@
 import gameConfig from 'backend/src/game.config';
 
-describe('21-online tests', () => {
+describe('swick-card-game tests', () => {
   it('visits the login page', () => {
     cy.visit('/');
 
-    cy.title().should('equal', '21 Online');
+    cy.title().should('equal', 'Swick');
   });
 
   it('can create a room', () => {

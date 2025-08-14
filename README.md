@@ -1,8 +1,8 @@
-# 21 Online
+# Swick
 
 ![Game screenshot](screenshot.png)
 
-21 Online is an online multiplayer Blackjack game. You can play it [here](https://stopnoanime.github.io/21-online/).
+Swick is an online multiplayer Swick game. You can play it [here](https://stopnoanime.github.io/swick-card-game/).
 
 ## Architecture
 The game's frontend is made with Angular. The backend is made using Node.js and the [Colyseus](https://github.com/colyseus/colyseus) framework.
