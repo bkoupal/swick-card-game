@@ -1,3 +1,3 @@
 export const environment = {
-  gameServer: 'wss://21-online-backend.fly.dev',
+  gameServer: 'wss://swick-card-game-backend.fly.dev',
 };

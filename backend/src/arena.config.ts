@@ -6,7 +6,7 @@ export default Arena({
     greet: false,
   },
 
-  getId: () => '21-Online',
+  getId: () => 'swick-card-game',
 
   initializeGameServer: (gameServer) => {
     gameServer.define('gameRoom', GameRoom);

@@ -1,6 +1,6 @@
-# fly.toml file generated for 21-online-backend on 2023-03-09T20:46:10+01:00
+# fly.toml file generated for swick-card-game-backend on 2023-03-09T20:46:10+01:00
 
-app = "21-online-backend"
+app = "swick-card-game-backend"
 kill_signal = "SIGINT"
 kill_timeout = 5
 primary_region = "waw"

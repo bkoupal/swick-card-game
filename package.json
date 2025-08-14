@@ -1,14 +1,14 @@
 {
-  "name": "21-online",
+  "name": "swick-card-game",
   "version": "0.0.0",
   "author": "stopnoanime",
-  "homepage": "https://github.com/stopnoanime/21-online",
+  "homepage": "https://github.com/stopnoanime/swick-card-game",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "backend-start": "cd backend && npm start",
     "build": "ng build",
-    "deploy": "ng deploy --base-href=/21-online/",
+    "deploy": "ng deploy --base-href=/swick-card-game/",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "prettier": "npx prettier --write .",
