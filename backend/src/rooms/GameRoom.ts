@@ -216,14 +216,19 @@ export class GameRoom extends Room<GameState> {
   private triggerNewRoundCheck() {
     if (this.state.roundState != 'idle') return;
 
-    //Clear previous start
+    // Clear previous start
     this.state.nextRoundStartTimestamp = 0;
     this.delayedRoundStartRef?.clear();
 
     const playerArr = [...this.state.players.values()];
 
-    //If there are no players left or not all players are ready, do not start round
-    if (playerArr.length == 0 || playerArr.some((p) => !p.ready)) return;
+    // NEW: Require at least minPlayers and all of them “ready”
+    if (
+      playerArr.length < gameConfig.minPlayers ||
+      playerArr.some((p) => !p.ready)
+    ) {
+      return;
+    }
 
     this.log(`Setting delayed round start`);
 
@@ -312,6 +317,7 @@ export class GameRoom extends Room<GameState> {
 
       //Deal player cards
       player.hand.clear();
+      player.hand.addCard();
       player.hand.addCard();
       player.hand.addCard();
     }
