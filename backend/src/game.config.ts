@@ -1,6 +1,7 @@
 export default {
-  maxClients: 7,
+  maxClients: 6,
   roomIdLength: 4,
+  minPlayers: 3,
 
   //All times are in ms
   inactivityTimeout: 30000,
