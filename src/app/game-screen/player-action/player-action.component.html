@@ -71,10 +71,15 @@
 
   <div
     class="pill-menu"
-    *ngIf="readyMenuHidden && !trumpSelectionMenuVisible && !knockInMenuVisible"
-    [attr.disabled]="stayHitMenuDisabled ? true : null"
+    *ngIf="
+      readyMenuHidden &&
+      !trumpSelectionMenuVisible &&
+      !knockInMenuVisible &&
+      cardPlayPhase
+    "
   >
-    <button (click)="stay.emit()">Stay</button>
-    <button (click)="hit.emit()">Hit</button>
+    <span class="whitespace-normal text-center">
+      Click a card from your hand to play it
+    </span>
   </div>
 </div>

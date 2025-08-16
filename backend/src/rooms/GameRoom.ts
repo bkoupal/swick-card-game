@@ -1,5 +1,11 @@
 import { Room, Client, Delayed, Protocol, ServerError } from 'colyseus';
-import { GameState, Player } from './schema/GameState';
+import {
+  GameState,
+  Player,
+  PlayedCard,
+  CompletedTrick,
+  Card,
+} from './schema/GameState';
 import gameConfig from '../game.config';
 import log from 'npmlog';
 import {
@@ -7,6 +13,7 @@ import {
   generateRoomId,
   computeRoundOutcome,
 } from './utility';
+import { ArraySchema } from '@colyseus/schema';
 
 export class GameRoom extends Room<GameState> {
   /** Current timeout skip reference */
@@ -97,35 +104,34 @@ export class GameRoom extends Room<GameState> {
       this.state.players.get(client.sessionId).bet = newBet;
     });
 
-    this.onMessage('hit', (client) => {
-      if (client.sessionId != this.state.currentTurnPlayerId) return;
+    this.onMessage('playCard', (client, cardIndex: number) => {
+      if (
+        client.sessionId != this.state.currentTurnPlayerId ||
+        this.state.roundState != 'turns' ||
+        typeof cardIndex !== 'number'
+      )
+        return;
 
-      this.log(`Hit`, client);
+      this.log(`Play card at index ${cardIndex}`, client);
 
       const player = this.state.players.get(client.sessionId);
 
-      player.hand.addCard();
-
-      if (player.hand.isBusted) {
-        //Making player not ready basically kicks them from the current round
-        player.ready = false;
-        player.roundOutcome = 'bust';
-        this.turn();
-      } else if (player.hand.score == 21) {
-        //Player can't hit anymore, go to next player
-        this.turn();
-      } else {
-        //Player can still hit, Reset skip timer
-        this.setInactivitySkipTimeout();
+      // Validate card index
+      if (cardIndex < 0 || cardIndex >= player.hand.cards.length) {
+        this.log(`Invalid card index: ${cardIndex}`);
+        return;
       }
-    });
 
-    this.onMessage('stay', (client) => {
-      if (client.sessionId != this.state.currentTurnPlayerId) return;
+      const cardToPlay = player.hand.cards[cardIndex];
 
-      this.log(`Stay`, client);
+      // Validate the card play according to SWICK rules
+      if (!this.isValidCardPlay(player, cardToPlay)) {
+        this.log(`Invalid card play attempted`);
+        return;
+      }
 
-      this.turn();
+      // Play the card
+      this.playCard(player, cardToPlay, cardIndex);
     });
 
     this.onMessage('kick', (client, id: string) => {
@@ -459,11 +465,26 @@ export class GameRoom extends Room<GameState> {
         this.log(`No players knocked in - ending hand`);
         this.endRound();
       } else {
-        // Start the card playing phase (for now, keep existing turns logic)
-        this.log(`Starting turns phase`);
+        // Start the card playing phase with trick-taking
+        this.log(`Starting trick-taking phase`);
         this.state.roundState = 'turns';
+        this.state.currentTrickNumber = 1;
+        this.state.currentTrick.clear();
+        this.state.completedTricks.clear();
+
+        // First trick is led by first player to dealer's left
+        const knockedInPlayers = playersIn.map((p) => p.sessionId);
+        const dealerIndex = knockedInPlayers.indexOf(this.state.dealerId);
+        const firstPlayerIndex = (dealerIndex + 1) % knockedInPlayers.length;
+        const firstPlayerId = knockedInPlayers[firstPlayerIndex];
+
+        this.state.trickLeaderId = firstPlayerId;
+        this.state.currentTurnPlayerId = firstPlayerId;
+
+        this.log(`First trick led by player after dealer: ${firstPlayerId}`);
+
         this.roundPlayersIdIterator = this.makeKnockedInIterator();
-        this.turn();
+        this.setInactivitySkipTimeout();
       }
     }
   }
@@ -530,62 +551,348 @@ export class GameRoom extends Room<GameState> {
 
     this.state.roundState = 'end';
 
-    //Show dealers hidden card
-    this.state.dealerHand.cards.at(1).visible = true;
+    // TODO: SWICK scoring logic will be implemented in Step 5
+    // For now, just end the hand and reset for next round
 
-    //Calculate hand value after showing hidden card
-    this.state.dealerHand.calculateScore();
-
-    //Do not deal dealer cards if all players are busted
-    if (!this.makeRoundIterator().next().done) {
-      //Dealer draws cards until total is at least 17
-      while (this.state.dealerHand.score < 17) {
-        await this.delay(gameConfig.dealerCardDelay);
-        this.state.dealerHand.addCard();
-      }
-
-      //Delay showing round outcome to players
-      await this.delay(gameConfig.roundOutcomeDelay);
-
-      //Settle score between each player that's not busted, and dealer
-      for (const playerId of this.makeRoundIterator()) {
-        const player = this.state.players.get(playerId);
-
-        const outcome = computeRoundOutcome(
-          player.hand,
-          this.state.dealerHand,
-          player.bet
-        );
-
-        player.roundOutcome = outcome.outcome;
-        player.money += outcome.moneyChange;
-      }
-    }
-
-    //Delay starting next phase
+    // Delay before starting next phase
     await this.delay(
       gameConfig.roundStateEndTimeBase +
         this.state.players.size * gameConfig.roundStateEndTimePlayer
     );
 
-    //Remove dealer cards
-    this.state.dealerHand.clear();
+    // Clear trick data for next hand
+    this.state.currentTrick.clear();
+    this.state.completedTricks.clear();
+    this.state.currentTrickNumber = 1;
+    this.state.trickLeaderId = '';
 
-    //Remove all players cards, and set their ready state
+    // Clear trump data
+    this.state.trumpSuit = '';
+    this.state.trumpCard = undefined;
+    this.state.potValue = 0;
+
+    // Reset all players for next hand
     for (const player of this.state.players.values()) {
       player.hand.clear();
       player.ready = player.autoReady;
       player.roundOutcome = '';
+      player.knockedIn = false;
+      player.hasKnockDecision = false;
 
-      //Remove players that are still disconnected
+      // Remove players that are still disconnected
       if (player.disconnected) this.deletePlayer(player.sessionId);
     }
 
-    //Change starting player on next round
+    // Change starting player/dealer for next round
     this.roundIteratorOffset++;
 
     this.log(`Starting idle phase`);
     this.state.roundState = 'idle';
     this.triggerNewRoundCheck();
+  }
+
+  /**
+   * Validates if a card play is legal according to SWICK rules
+   */
+  private isValidCardPlay(player: Player, cardToPlay: Card): boolean {
+    const currentTrick = this.state.currentTrick;
+
+    // Special rule: First player to dealer's left must lead with Ace of Trump if they have it
+    if (currentTrick.length === 0 && this.state.currentTrickNumber === 1) {
+      const isFirstPlayerAfterDealer = this.isFirstPlayerAfterDealer(
+        player.sessionId
+      );
+      if (isFirstPlayerAfterDealer) {
+        const hasAceOfTrump = player.hand.cards.some(
+          (card) =>
+            card.value?.value === 'A' &&
+            card.value?.suit === this.state.trumpSuit
+        );
+
+        if (
+          hasAceOfTrump &&
+          !(
+            cardToPlay.value?.value === 'A' &&
+            cardToPlay.value?.suit === this.state.trumpSuit
+          )
+        ) {
+          this.log(`Player must lead with Ace of Trump if they have it`);
+          return false;
+        }
+      }
+    }
+
+    // If this is the first card of the trick, any card is valid (except the Ace of Trump rule above)
+    if (currentTrick.length === 0) {
+      return true;
+    }
+
+    // Get the suit that was led
+    const leadSuit = currentTrick[0].card.value?.suit;
+    const cardSuit = cardToPlay.value?.suit;
+
+    // Check if player can follow suit
+    const hasLeadSuit = player.hand.cards.some(
+      (card) => card.value?.suit === leadSuit
+    );
+
+    if (hasLeadSuit) {
+      // Player has the lead suit, so they must play it
+      if (cardSuit !== leadSuit) {
+        this.log(`Player must follow suit: ${leadSuit}`);
+        return false;
+      }
+
+      // Check if player must beat the current highest card of the lead suit
+      const highestLeadSuitCard = this.getHighestCardOfSuit(
+        currentTrick,
+        leadSuit
+      );
+      if (
+        highestLeadSuitCard &&
+        !this.cardBeats(cardToPlay, highestLeadSuitCard.card)
+      ) {
+        // Player must beat if they can
+        const canBeat = player.hand.cards.some(
+          (card) =>
+            card.value?.suit === leadSuit &&
+            this.cardBeats(card, highestLeadSuitCard.card)
+        );
+
+        if (canBeat) {
+          this.log(`Player must beat the current highest card if possible`);
+          return false;
+        }
+      }
+
+      return true;
+    } else {
+      // Player doesn't have lead suit
+      const hasTrump = player.hand.cards.some(
+        (card) => card.value?.suit === this.state.trumpSuit
+      );
+
+      if (hasTrump && cardSuit !== this.state.trumpSuit) {
+        this.log(`Player must trump if they can't follow suit`);
+        return false;
+      }
+
+      // If they don't have trump either, they can play any card
+      return true;
+    }
+  }
+
+  /**
+   * Plays a card and handles trick logic
+   */
+  private playCard(player: Player, cardToPlay: Card, cardIndex: number) {
+    // Add card to current trick
+    const playedCard = new PlayedCard(
+      player.sessionId,
+      cardToPlay,
+      this.state.currentTrick.length
+    );
+    this.state.currentTrick.push(playedCard);
+
+    // Remove card from player's hand
+    player.hand.cards.splice(cardIndex, 1);
+
+    this.log(
+      `Card played: ${cardToPlay.value?.value} of ${cardToPlay.value?.suit} by ${player.displayName}`
+    );
+
+    // Check if trick is complete (all knocked-in players have played)
+    const knockedInPlayers = [...this.state.players.values()].filter(
+      (p) => p.ready && p.knockedIn
+    );
+
+    if (this.state.currentTrick.length === knockedInPlayers.length) {
+      // Trick is complete - determine winner
+      this.log(
+        `Trick ${this.state.currentTrickNumber} complete with ${this.state.currentTrick.length} cards`
+      );
+      this.completeTrick();
+    } else {
+      // Move to next player in the trick
+      this.nextPlayerInTrick();
+    }
+  }
+
+  /**
+   * Moves to the next player in the current trick
+   */
+  private nextPlayerInTrick() {
+    const knockedInPlayers = [...this.state.players.values()]
+      .filter((p) => p.ready && p.knockedIn)
+      .map((p) => p.sessionId);
+
+    // Find current player's position
+    const currentPlayerIndex = knockedInPlayers.indexOf(
+      this.state.currentTurnPlayerId
+    );
+
+    // Get next player (wrap around)
+    const nextPlayerIndex = (currentPlayerIndex + 1) % knockedInPlayers.length;
+    const nextPlayerId = knockedInPlayers[nextPlayerIndex];
+
+    this.state.currentTurnPlayerId = nextPlayerId;
+
+    this.log(`Next player in trick: ${nextPlayerId}`);
+    this.setInactivitySkipTimeout();
+  }
+
+  /**
+   * Completes the current trick and determines the winner
+   */
+  private completeTrick() {
+    const trickWinner = this.determineTrickWinner(this.state.currentTrick);
+    if (!trickWinner) {
+      this.log('Error: No trick winner determined');
+      return;
+    }
+
+    this.log(
+      `Trick ${this.state.currentTrickNumber} won by: ${
+        trickWinner.playerId
+      } (${this.state.players.get(trickWinner.playerId)?.displayName})`
+    );
+
+    // Create completed trick record
+    const completedTrick = new CompletedTrick(this.state.currentTrickNumber);
+    completedTrick.playedCards.push(...this.state.currentTrick);
+    completedTrick.winnerId = trickWinner.playerId;
+    this.state.completedTricks.push(completedTrick);
+
+    // Clear current trick
+    this.state.currentTrick.clear();
+
+    // Check if all tricks are complete
+    if (this.state.currentTrickNumber >= 3) {
+      // All tricks done - end the hand
+      this.log(`All 3 tricks completed - ending hand`);
+      this.endRound();
+    } else {
+      // Start next trick - winner leads
+      this.state.currentTrickNumber++;
+      this.state.trickLeaderId = trickWinner.playerId;
+      this.state.currentTurnPlayerId = trickWinner.playerId;
+
+      this.log(
+        `Starting trick ${this.state.currentTrickNumber}, led by ${
+          trickWinner.playerId
+        } (${this.state.players.get(trickWinner.playerId)?.displayName})`
+      );
+
+      // Reset timeout for next trick
+      this.setInactivitySkipTimeout();
+    }
+  }
+
+  /**
+   * Determines who wins a trick based on SWICK rules
+   */
+  private determineTrickWinner(trick: ArraySchema<PlayedCard>): PlayedCard {
+    if (trick.length === 0) return null;
+
+    const leadSuit = trick[0].card.value?.suit;
+    let winner = trick[0];
+
+    for (const playedCard of trick) {
+      const card = playedCard.card;
+
+      // Trump cards always beat non-trump cards
+      if (
+        card.value?.suit === this.state.trumpSuit &&
+        winner.card.value?.suit !== this.state.trumpSuit
+      ) {
+        winner = playedCard;
+      }
+      // If both are trump, higher trump wins
+      else if (
+        card.value?.suit === this.state.trumpSuit &&
+        winner.card.value?.suit === this.state.trumpSuit
+      ) {
+        if (this.cardBeats(card, winner.card)) {
+          winner = playedCard;
+        }
+      }
+      // If neither is trump, must be same suit as lead to win
+      else if (
+        card.value?.suit === leadSuit &&
+        winner.card.value?.suit === leadSuit
+      ) {
+        if (this.cardBeats(card, winner.card)) {
+          winner = playedCard;
+        }
+      }
+    }
+
+    return winner;
+  }
+
+  /**
+   * Checks if card1 beats card2 based on SWICK card values
+   */
+  private cardBeats(card1: Card, card2: Card): boolean {
+    const getValue = (value: string): number => {
+      switch (value) {
+        case 'A':
+          return 14;
+        case 'K':
+          return 13;
+        case 'Q':
+          return 12;
+        case 'J':
+          return 11;
+        case '10':
+          return 10;
+        case '9':
+          return 9;
+        case '8':
+          return 8;
+        case '7':
+          return 7;
+        default:
+          return 0;
+      }
+    };
+
+    return (
+      getValue(card1.value?.value || '') > getValue(card2.value?.value || '')
+    );
+  }
+
+  /**
+   * Gets the highest card of a specific suit in the current trick
+   */
+  private getHighestCardOfSuit(
+    trick: ArraySchema<PlayedCard>,
+    suit: string
+  ): PlayedCard | null {
+    const suitCards = trick.filter((pc) => pc.card.value?.suit === suit);
+    if (suitCards.length === 0) return null;
+
+    let highest = suitCards[0];
+    for (const playedCard of suitCards) {
+      if (this.cardBeats(playedCard.card, highest.card)) {
+        highest = playedCard;
+      }
+    }
+
+    return highest;
+  }
+
+  /**
+   * Checks if a player is the first player to the left of the dealer
+   */
+  private isFirstPlayerAfterDealer(playerId: string): boolean {
+    const knockedInPlayers = [...this.state.players.values()]
+      .filter((p) => p.ready && p.knockedIn)
+      .map((p) => p.sessionId);
+
+    const dealerIndex = knockedInPlayers.indexOf(this.state.dealerId);
+    const firstPlayerIndex = (dealerIndex + 1) % knockedInPlayers.length;
+
+    return knockedInPlayers[firstPlayerIndex] === playerId;
   }
 }

@@ -79,7 +79,13 @@
       [class.opacity-80]="player?.roundOutcome || dealerHand?.isBusted"
     >
       <div class="hand">
-        <app-card *ngFor="let card of hand?.cards" [card]="card"></app-card>
+        <app-card
+          *ngFor="let card of hand?.cards; let i = index"
+          [card]="card"
+          [isClickable]="canPlayCard(card)"
+          (cardClick)="onCardClick(i)"
+        >
+        </app-card>
       </div>
       <div style="width: calc(var(--playing-card-width) * 0.5)"></div>
     </div>

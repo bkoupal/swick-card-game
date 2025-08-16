@@ -112,16 +112,12 @@ export class GameService {
     this.room?.send('bet', newBet);
   }
 
-  public hit() {
-    this.room?.send('hit');
-  }
-
-  public stay() {
-    this.room?.send('stay');
-  }
-
   public kick(id: string) {
     this.room?.send('kick', id);
+  }
+
+  public playCard(cardIndex: number) {
+    this.room?.send('playCard', cardIndex);
   }
 
   // SWICK-specific methods

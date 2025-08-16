@@ -56,3 +56,17 @@
 .card-suit {
   font-family: "Noto Sans Symbols 2", sans-serif;
 }
+
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+
+  &:hover {
+    transform: translateY(-8px);
+    filter: brightness(1.1);
+  }
+
+  &:active {
+    transform: translateY(-4px);
+  }
+}

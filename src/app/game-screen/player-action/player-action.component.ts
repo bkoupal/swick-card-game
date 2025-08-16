@@ -19,9 +19,7 @@ export class PlayerActionsComponent {
   @Input() autoReady? = false;
   @Output() autoReadyChange = new EventEmitter<boolean>();
 
-  @Input() stayHitMenuDisabled = false;
-  @Output() stay = new EventEmitter();
-  @Output() hit = new EventEmitter();
+  @Input() cardPlayPhase = false;
 
   // SWICK-specific inputs and outputs
   @Input() trumpSelectionMenuVisible = false;

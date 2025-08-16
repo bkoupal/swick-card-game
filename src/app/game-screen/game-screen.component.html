@@ -49,17 +49,18 @@
         *ngFor="let player of getAllPlayers(smallScreen$ | async); index as i"
         [style.z-index]="10 - Math.round(getPlayerPosition(i) * 10)"
         [player]="player"
-        [scoreBottom]="
-          (smallScreen$ | async) ||
-          (getPlayerPosition(i) <= 0.25 && getPlayerPosition(i) != 0)
-        "
-        (kick)="game.kick($event)"
+        [endTimestamp]="game.roundEndTimestamp"
         [isPlayerTurn]="
           game.room!.state.currentTurnPlayerId === player?.sessionId
         "
         [clientIsPlayer]="game.room!.sessionId === player?.sessionId"
-        [endTimestamp]="game.roundEndTimestamp"
+        [scoreBottom]="
+          (smallScreen$ | async) ||
+          (getPlayerPosition(i) <= 0.25 && getPlayerPosition(i) != 0)
+        "
         [isDealer]="player?.sessionId === game.room!.state.dealerId"
+        (playCard)="game.playCard($event)"
+        (kick)="game.kick($event)"
       ></app-player>
     </div>
 
@@ -128,9 +129,7 @@
     (readyChange)="game.setReadyState($event)"
     [autoReady]="game.player?.autoReady"
     (autoReadyChange)="game.setAutoReadyState($event)"
-    [stayHitMenuDisabled]="!game.playersTurn"
-    (stay)="game.stay()"
-    (hit)="game.hit()"
+    [cardPlayPhase]="game.room!.state.roundState === 'turns'"
     [trumpSelectionMenuVisible]="game.trumpSelectionPhase && game.isDealer"
     [trumpCardDisplay]="getTrumpCardDisplay()"
     (keepTrump)="game.keepTrump($event)"
