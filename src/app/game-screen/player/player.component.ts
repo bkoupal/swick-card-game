@@ -10,8 +10,8 @@ export class PlayerComponent {
   @Input() player?: Player;
   @Input() dealerHand?: Hand;
   @Input() type: 'dealer' | 'player' = 'player';
-
   @Input() scoreBottom: boolean | null = false;
+  @Input() isDealer: boolean = false; // Add this line
 
   // For this component:
   // Player = The player that is passed into the component, can be client or any other player

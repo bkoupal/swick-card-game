@@ -26,6 +26,15 @@
     >
       <mat-icon>star</mat-icon>
     </button>
+
+    <button
+      *ngIf="game.isDealer"
+      mat-mini-fab
+      color="accent"
+      matTooltip="You are the dealer this hand"
+    >
+      <mat-icon>casino</mat-icon>
+    </button>
   </div>
 
   <div class="grid place-items-center py-8 w-min">
@@ -50,7 +59,7 @@
         "
         [clientIsPlayer]="game.room!.sessionId === player?.sessionId"
         [endTimestamp]="game.roundEndTimestamp"
-        [clientIsAdmin]="game.player?.admin"
+        [isDealer]="player?.sessionId === game.room!.state.dealerId"
       ></app-player>
     </div>
 
@@ -58,7 +67,28 @@
       class="row-start-1 col-start-1 z-0 text-amber-50 font-serif text-center"
     >
       <span class="table-font-xl">Swick</span><br />
-      <span class="table-font-lg">Knock In, Play Bold, Don’t Go Set</span>
+      <span class="table-font-lg">Knock In, Play Bold, Don't Go Set</span>
+      <!-- Show trump card during trump selection phase -->
+      <div
+        *ngIf="game.room!.state.trumpCard && game.trumpSelectionPhase"
+        class="table-font mt-2"
+      >
+        <div class="font-bold mb-2">Trump Card:</div>
+        <div class="flex justify-center">
+          <app-card [card]="game.room!.state.trumpCard"></app-card>
+        </div>
+      </div>
+
+      <!-- Show trump suit once selected -->
+      <div
+        *ngIf="game.room!.state.trumpSuit && !game.trumpSelectionPhase"
+        class="table-font mt-2"
+      >
+        Trump: {{ game.room!.state.trumpSuit }}
+      </div>
+      <div *ngIf="game.room!.state.potValue > 0" class="table-font mt-1">
+        Pot: {{ game.room!.state.potValue }}¢
+      </div>
     </div>
 
     <div
@@ -70,6 +100,20 @@
       data-cy="roundStart-popup"
     >
       Starting round
+    </div>
+
+    <div
+      *ngIf="game.trumpSelectionPhase && game.isDealer"
+      class="row-start-1 col-start-1 z-10 table-font-xl pill-popup"
+    >
+      Choose whether to keep trump card
+    </div>
+
+    <div
+      *ngIf="game.knockInPhase"
+      class="row-start-1 col-start-1 z-10 table-font-xl pill-popup"
+    >
+      Knock in to play this hand
     </div>
   </div>
 
@@ -87,6 +131,12 @@
     [stayHitMenuDisabled]="!game.playersTurn"
     (stay)="game.stay()"
     (hit)="game.hit()"
+    [trumpSelectionMenuVisible]="game.trumpSelectionPhase && game.isDealer"
+    [trumpCardDisplay]="getTrumpCardDisplay()"
+    (keepTrump)="game.keepTrump($event)"
+    [knockInMenuVisible]="game.knockInPhase && !game.player?.hasKnockDecision"
+    [trumpSuit]="game.room!.state.trumpSuit"
+    (knockIn)="game.knockIn($event)"
   ></app-player-actions>
 
   <span class="text-neutral-400 self-end" data-cy="roomId-value">

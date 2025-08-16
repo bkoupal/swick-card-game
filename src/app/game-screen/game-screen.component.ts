@@ -39,4 +39,10 @@ export class GameScreenComponent {
       gameConfig.maxClients
     );
   }
+
+  getTrumpCardDisplay(): string {
+    const trumpCard = this.game.room?.state.trumpCard;
+    if (!trumpCard?.value) return '';
+    return `${trumpCard.value.value} of ${trumpCard.value.suit}`;
+  }
 }

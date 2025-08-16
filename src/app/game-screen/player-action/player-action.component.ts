@@ -23,5 +23,14 @@ export class PlayerActionsComponent {
   @Output() stay = new EventEmitter();
   @Output() hit = new EventEmitter();
 
+  // SWICK-specific inputs and outputs
+  @Input() trumpSelectionMenuVisible = false;
+  @Input() trumpCardDisplay = '';
+  @Output() keepTrump = new EventEmitter<boolean>();
+
+  @Input() knockInMenuVisible = false;
+  @Input() trumpSuit = '';
+  @Output() knockIn = new EventEmitter<boolean>();
+
   gameConfig = gameConfig;
 }

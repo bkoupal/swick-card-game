@@ -4,6 +4,8 @@ import {
   availableSuits,
   availableValues,
   getRandomArrayItem,
+  Suit,
+  Value,
 } from './cardValues';
 
 /**
@@ -12,12 +14,6 @@ import {
 export class CardValue extends Schema {
   @type('string') suit: string;
   @type('string') value: string;
-
-  public get numericValue() {
-    if (this.value == 'A') return 11;
-    if (isNaN(Number(this.value))) return 10;
-    return Number(this.value);
-  }
 }
 
 /**
@@ -32,60 +28,131 @@ export class Card extends Schema {
   @type(CardValue)
   value?: CardValue;
 
-  constructor(visible = true) {
+  constructor(suit?: Suit, value?: Value, visible = true) {
     super();
 
     this.visible = visible;
 
-    this.value = new CardValue({
-      suit: getRandomArrayItem(availableSuits),
-      value: getRandomArrayItem(availableValues),
-    });
+    if (suit && value) {
+      this.value = new CardValue({
+        suit: suit,
+        value: value,
+      });
+    } else {
+      // Fallback for backwards compatibility
+      this.value = new CardValue({
+        suit: getRandomArrayItem(availableSuits),
+        value: getRandomArrayItem(availableValues),
+      });
+    }
   }
 }
 
 /**
- * Represents a set of cards
+ * Represents a deck of 32 cards (7-A in all suits)
  */
-export class Hand extends Schema {
-  @type('number') score: number;
-  @type('boolean') isBlackjack: boolean = false;
-  @type('boolean') isBusted: boolean = false;
+export class Deck extends Schema {
   @type([Card]) cards = new ArraySchema<Card>();
 
-  public addCard(visible?: boolean) {
-    this.cards.push(new Card(visible));
-    if (visible === false) this.clearScore();
-    else this.calculateScore();
+  constructor() {
+    super();
+    this.reset();
+  }
+
+  /**
+   * Creates a fresh 32-card deck and shuffles it
+   */
+  public reset() {
+    this.cards.clear();
+
+    // Create all 32 cards (7-A in each suit)
+    for (const suit of availableSuits) {
+      for (const value of availableValues) {
+        this.cards.push(new Card(suit, value, false)); // Cards start face down
+      }
+    }
+
+    this.shuffle();
+  }
+
+  /**
+   * Shuffles the deck using Fisher-Yates algorithm
+   */
+  public shuffle() {
+    for (let i = this.cards.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+    }
+  }
+
+  /**
+   * Draws a card from the top of the deck
+   * @param visible Whether the card should be visible to players
+   * @returns The drawn card or null if deck is empty
+   */
+  public drawCard(visible = true): Card | null {
+    if (this.cards.length === 0) {
+      return null; // Deck is empty
+    }
+
+    const card = this.cards.pop();
+    if (card) {
+      card.visible = visible;
+    }
+    return card || null;
+  }
+
+  /**
+   * Returns the number of cards remaining in the deck
+   */
+  public get remainingCards(): number {
+    return this.cards.length;
+  }
+}
+
+/**
+ * Represents a set of cards (player's hand)
+ */
+export class Hand extends Schema {
+  @type([Card]) cards = new ArraySchema<Card>();
+
+  public addCardFromDeck(deck: Deck, visible = true) {
+    const card = deck.drawCard(visible);
+    if (card) {
+      this.cards.push(card);
+    }
+    return card;
   }
 
   public clear() {
     this.cards.clear();
-    this.clearScore();
   }
 
-  private clearScore() {
-    this.score = 0;
-    this.isBlackjack = false;
-    this.isBusted = false;
+  // SWICK-specific methods will be added in later steps
+  // For now, keep basic structure compatible
+  public get score() {
+    // Placeholder - will be replaced with SWICK hand evaluation
+    return 0;
+  }
+
+  public get isBlackjack() {
+    // Not applicable to SWICK, but keeping for compatibility during transition
+    return false;
+  }
+
+  public get isBusted() {
+    // Not applicable to SWICK, but keeping for compatibility during transition
+    return false;
   }
 
   public calculateScore() {
-    let tmpScore = this.cards
-      .map((c) => c.value!.numericValue)
-      .reduce((a, b) => a + b);
+    // Placeholder - will implement SWICK hand evaluation later
+  }
 
-    let numberOfAces = this.cards.filter((c) => c.value!.value === 'A').length;
-    while (numberOfAces > 0) {
-      if (tmpScore > 21) {
-        numberOfAces--;
-        tmpScore -= 10;
-      } else break;
-    }
-
-    this.score = tmpScore;
-    this.isBlackjack = tmpScore == 21 && this.cards.length == 2;
-    this.isBusted = tmpScore > 21;
+  // Keep old addCard method for backwards compatibility during transition
+  public addCard(visible?: boolean) {
+    // This will be deprecated once we fully transition to deck-based drawing
+    this.cards.push(new Card(undefined, undefined, visible));
   }
 }
 
@@ -100,16 +167,33 @@ export class Player extends Schema {
   @type('boolean') admin: boolean;
   @type('string') roundOutcome: roundOutcome;
   @type(Hand) hand = new Hand();
+
+  // SWICK-specific player states
+  @type('boolean') knockedIn = false; // Whether player "knocked in" to play this hand
+  @type('boolean') hasKnockDecision = false; // Whether player has made knock decision yet
 }
 
 export class GameState extends Schema {
-  @type('string') roundState: 'idle' | 'dealing' | 'turns' | 'end' = 'idle';
+  @type('string') roundState:
+    | 'idle'
+    | 'dealing'
+    | 'trump-selection'
+    | 'knock-in'
+    | 'turns'
+    | 'end' = 'idle';
   @type('string') currentTurnPlayerId: string;
   @type('uint64') currentTurnTimeoutTimestamp: number = 0;
   @type('uint64') nextRoundStartTimestamp: number = 0;
 
   @type(Hand) dealerHand = new Hand();
   @type({ map: Player }) players = new MapSchema<Player>();
+  @type(Deck) deck = new Deck();
+
+  // SWICK-specific fields
+  @type('string') trumpSuit: string = '';
+  @type('number') potValue: number = 0;
+  @type(Card) trumpCard?: Card; // The trump card that determines the trump suit
+  @type('string') dealerId: string = ''; // Which player is the dealer for this hand
 }
 
 export type roundOutcome = 'bust' | 'win' | 'lose' | 'draw' | '';
