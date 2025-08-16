@@ -15,6 +15,17 @@
     >
   </div>
 
+  <!-- Dealer indicator -->
+  <div
+    *ngIf="isDealer"
+    class="col-start-1 row-start-1 text-orange-400 font-bold text-xs -mt-6 pill-popup scale-75"
+  >
+    <mat-icon class="text-orange-400 align-middle mb-px text-sm"
+      >casino</mat-icon
+    >
+    DEALER
+  </div>
+
   <div class="flex flex-col col-start-1 row-start-1">
     <span
       class="table-font text-center whitespace-nowrap"

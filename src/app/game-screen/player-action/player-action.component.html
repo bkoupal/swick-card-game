@@ -31,7 +31,30 @@
     />
   </div>
 
-  <div class="pill-menu" *ngIf="!readyMenuHidden">
+  <!-- Trump Selection Menu (only for dealer) -->
+  <div class="pill-menu" *ngIf="trumpSelectionMenuVisible">
+    <span class="whitespace-normal">Trump Card: {{ trumpCardDisplay }}</span>
+    <button (click)="keepTrump.emit(true)" data-cy="keep-trump">
+      Keep Trump
+    </button>
+    <button (click)="keepTrump.emit(false)" data-cy="discard-trump">
+      Discard Trump
+    </button>
+  </div>
+
+  <!-- Knock In Menu -->
+  <div class="pill-menu" *ngIf="knockInMenuVisible">
+    <span class="whitespace-normal">Trump Suit: {{ trumpSuit }}</span>
+    <button (click)="knockIn.emit(true)" data-cy="knock-in">Knock In</button>
+    <button (click)="knockIn.emit(false)" data-cy="pass">Pass</button>
+  </div>
+
+  <div
+    class="pill-menu"
+    *ngIf="
+      !readyMenuHidden && !trumpSelectionMenuVisible && !knockInMenuVisible
+    "
+  >
     <button style="flex-grow: 100" (click)="readyChange.emit(!ready)">
       {{ ready ? "Not ready" : "Ready" }}
     </button>
@@ -48,7 +71,7 @@
 
   <div
     class="pill-menu"
-    *ngIf="readyMenuHidden"
+    *ngIf="readyMenuHidden && !trumpSelectionMenuVisible && !knockInMenuVisible"
     [attr.disabled]="stayHitMenuDisabled ? true : null"
   >
     <button (click)="stay.emit()">Stay</button>

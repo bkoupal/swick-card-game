@@ -124,6 +124,27 @@ export class GameService {
     this.room?.send('kick', id);
   }
 
+  // SWICK-specific methods
+  public keepTrump(keep: boolean) {
+    this.room?.send('keepTrump', keep);
+  }
+
+  public knockIn(knockIn: boolean) {
+    this.room?.send('knockIn', knockIn);
+  }
+
+  public get isDealer() {
+    return this._room?.state.dealerId === this._room?.sessionId;
+  }
+
+  public get trumpSelectionPhase() {
+    return this._room?.state.roundState === 'trump-selection';
+  }
+
+  public get knockInPhase() {
+    return this._room?.state.roundState === 'knock-in';
+  }
+
   /**
    * Tries to connect to given room and on success sets up lifecycle hooks
    * @param room The room

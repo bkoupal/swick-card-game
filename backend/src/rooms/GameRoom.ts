@@ -137,6 +137,54 @@ export class GameRoom extends Room<GameState> {
         .find((c) => c.sessionId == id)
         ?.leave(Protocol.WS_CLOSE_CONSENTED);
     });
+
+    this.onMessage('keepTrump', (client, keep: boolean) => {
+      // Only dealer can make trump decision during trump-selection phase
+      if (
+        this.state.roundState != 'trump-selection' ||
+        client.sessionId != this.state.dealerId ||
+        typeof keep != 'boolean'
+      )
+        return;
+
+      this.log(`Dealer ${keep ? 'keeps' : 'discards'} trump card`, client);
+
+      if (keep) {
+        // Dealer keeps trump card - add it to dealer's hand
+        const dealer = this.state.players.get(client.sessionId);
+        if (this.state.trumpCard) {
+          dealer.hand.cards.push(this.state.trumpCard);
+        }
+      }
+
+      // Set trump suit based on the trump card
+      if (this.state.trumpCard) {
+        this.state.trumpSuit = this.state.trumpCard.value!.suit;
+      }
+
+      this.startKnockInPhase();
+    });
+
+    this.onMessage('knockIn', (client, knockIn: boolean) => {
+      if (this.state.roundState != 'knock-in' || typeof knockIn != 'boolean')
+        return;
+
+      const player = this.state.players.get(client.sessionId);
+      if (!player || player.hasKnockDecision) return;
+
+      this.log(`Player ${knockIn ? 'knocks in' : 'passes'}`, client);
+
+      player.knockedIn = knockIn;
+      player.hasKnockDecision = true;
+
+      // If player passes, they lose their ante but are out of the hand
+      if (!knockIn) {
+        // Money was already taken for ante, so they just lose it
+        player.ready = false; // Remove from round
+      }
+
+      this.checkAllKnockDecisions();
+    });
   }
 
   onAuth(client: Client) {
@@ -309,35 +357,137 @@ export class GameRoom extends Room<GameState> {
 
     this.state.roundState = 'dealing';
 
+    // Reset and shuffle the deck before each hand (SWICK rule)
+    this.state.deck.reset();
+
+    // Determine dealer (rotate each hand based on roundIteratorOffset)
+    const allPlayers = [...this.state.players.values()].filter((p) => p.ready);
+    const dealerIndex = this.roundIteratorOffset % allPlayers.length;
+    this.state.dealerId = allPlayers[dealerIndex].sessionId;
+
+    this.log(
+      `Dealer is: ${this.state.players.get(this.state.dealerId).displayName}`
+    );
+    this.log(
+      `Deck shuffled. Cards remaining: ${this.state.deck.remainingCards}`
+    );
+
+    // Reset player states for new hand
+    for (const player of this.state.players.values()) {
+      if (player.ready) {
+        player.knockedIn = false;
+        player.hasKnockDecision = false;
+        player.roundOutcome = '';
+      }
+    }
+
     for (const playerId of this.makeRoundIterator()) {
       const player = this.state.players.get(playerId);
 
-      //Take money for bet from player account
-      player.money -= player.bet;
+      //Take money for ante from player account
+      // Dealer antes extra amount as per SWICK rules
+      const anteAmount =
+        playerId === this.state.dealerId
+          ? player.bet + gameConfig.dealerExtraAnte
+          : player.bet;
 
-      //Deal player cards
+      player.money -= anteAmount;
+      this.state.potValue += anteAmount;
+
+      //Deal player 3 cards from the deck (SWICK rule)
       player.hand.clear();
-      player.hand.addCard();
-      player.hand.addCard();
-      player.hand.addCard();
+      player.hand.addCardFromDeck(this.state.deck, true); // Card 1
+      player.hand.addCardFromDeck(this.state.deck, true); // Card 2
+      player.hand.addCardFromDeck(this.state.deck, true); // Card 3
     }
 
-    //Deal dealer cards
-    this.state.dealerHand.clear();
-    this.state.dealerHand.addCard();
-    this.state.dealerHand.addCard(false);
+    // Draw the trump card (next card after all players are dealt)
+    this.state.trumpCard = this.state.deck.drawCard(true);
 
-    //Delay starting next phase
+    this.log(
+      `Trump card drawn: ${this.state.trumpCard?.value?.value} of ${this.state.trumpCard?.value?.suit}`
+    );
+    this.log(
+      `Cards remaining after dealing: ${this.state.deck.remainingCards}`
+    );
+    this.log(`Pot value: ${this.state.potValue}`);
+
+    //Delay then start trump selection phase
     await this.delay(gameConfig.roundStateDealingTime);
 
-    this.log(`Starting turns phase`);
+    this.startTrumpSelectionPhase();
+  }
 
-    this.state.roundState = 'turns';
+  private startTrumpSelectionPhase() {
+    this.log(`Starting trump selection phase`);
+    this.state.roundState = 'trump-selection';
 
-    //Setup iterator for turns
-    this.roundPlayersIdIterator = this.makeRoundIterator();
+    // Clear dealer hand from previous games
+    this.state.dealerHand.clear();
 
-    this.turn();
+    // Dealer has time to decide whether to keep trump card
+    this.setInactivitySkipTimeout();
+  }
+
+  private startKnockInPhase() {
+    this.log(`Starting knock-in phase`);
+    this.state.roundState = 'knock-in';
+    this.state.currentTurnTimeoutTimestamp = 0;
+    this.inactivityTimeoutRef?.clear();
+
+    this.log(`Trump suit is: ${this.state.trumpSuit}`);
+  }
+
+  private checkAllKnockDecisions() {
+    const activePlayers = [...this.state.players.values()].filter(
+      (p) => p.ready
+    );
+    const decidedPlayers = activePlayers.filter((p) => p.hasKnockDecision);
+
+    this.log(
+      `Knock decisions: ${decidedPlayers.length}/${activePlayers.length}`
+    );
+
+    if (decidedPlayers.length === activePlayers.length) {
+      // All players have made their knock decision
+      const playersIn = activePlayers.filter((p) => p.knockedIn);
+
+      this.log(`Players knocked in: ${playersIn.length}`);
+
+      if (playersIn.length === 0) {
+        // Nobody knocked in - end the hand, pot carries over
+        this.log(`No players knocked in - ending hand`);
+        this.endRound();
+      } else {
+        // Start the card playing phase (for now, keep existing turns logic)
+        this.log(`Starting turns phase`);
+        this.state.roundState = 'turns';
+        this.roundPlayersIdIterator = this.makeKnockedInIterator();
+        this.turn();
+      }
+    }
+  }
+
+  /** Iterator over players that knocked in */
+  private *makeKnockedInIterator() {
+    let players = [...this.state.players.values()].filter(
+      (p) => p.ready && p.knockedIn
+    );
+
+    //Rotate players by offset
+    players = players.concat(
+      players.splice(0, this.roundIteratorOffset % players.length)
+    );
+
+    for (let i = 0; i < players.length; i++) {
+      const player = players[i];
+
+      //If grabbed player is not ready or didn't knock in, skip them
+      if (!player.ready || !player.knockedIn) continue;
+
+      //Otherwise yield the new player id
+      yield player.sessionId;
+    }
   }
 
   private turn() {
