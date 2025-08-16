@@ -1,4 +1,10 @@
-import { Component, HostBinding, Input } from '@angular/core';
+import {
+  Component,
+  HostBinding,
+  Input,
+  Output,
+  EventEmitter,
+} from '@angular/core';
 import { Card } from 'backend/src/rooms/schema/GameState';
 import {
   trigger,
@@ -62,4 +68,13 @@ import {
 export class PlayingCardComponent {
   @HostBinding('@enterLeaveAnimation') enterLeaveAnimation = true;
   @Input() card: Card;
+
+  @Input() isClickable: boolean = false;
+  @Output() cardClick = new EventEmitter<void>();
+
+  onCardClick() {
+    if (this.isClickable) {
+      this.cardClick.emit();
+    }
+  }
 }

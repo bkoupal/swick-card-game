@@ -49,6 +49,36 @@ export class Card extends Schema {
 }
 
 /**
+ * Represents a card played in the current trick
+ */
+export class PlayedCard extends Schema {
+  @type('string') playerId: string;
+  @type(Card) card: Card;
+  @type('number') playOrder: number; // Order in which card was played (0 = first, 1 = second, etc.)
+
+  constructor(playerId: string, card: Card, playOrder: number) {
+    super();
+    this.playerId = playerId;
+    this.card = card;
+    this.playOrder = playOrder;
+  }
+}
+
+/**
+ * Represents a completed trick
+ */
+export class CompletedTrick extends Schema {
+  @type([PlayedCard]) playedCards = new ArraySchema<PlayedCard>();
+  @type('string') winnerId: string;
+  @type('number') trickNumber: number; // 1, 2, or 3
+
+  constructor(trickNumber: number) {
+    super();
+    this.trickNumber = trickNumber;
+  }
+}
+
+/**
  * Represents a deck of 32 cards (7-A in all suits)
  */
 export class Deck extends Schema {
@@ -194,6 +224,10 @@ export class GameState extends Schema {
   @type('number') potValue: number = 0;
   @type(Card) trumpCard?: Card; // The trump card that determines the trump suit
   @type('string') dealerId: string = ''; // Which player is the dealer for this hand
+  @type([PlayedCard]) currentTrick = new ArraySchema<PlayedCard>(); // Cards played in current trick
+  @type([CompletedTrick]) completedTricks = new ArraySchema<CompletedTrick>(); // History of completed tricks
+  @type('string') trickLeaderId: string = ''; // Who leads the current trick
+  @type('number') currentTrickNumber: number = 1; // Which trick we're on (1, 2, or 3)
 }
 
 export type roundOutcome = 'bust' | 'win' | 'lose' | 'draw' | '';

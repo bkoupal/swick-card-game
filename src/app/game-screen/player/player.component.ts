@@ -18,6 +18,7 @@ export class PlayerComponent {
   // Client = The player that is using this game instance
 
   @Output() kick = new EventEmitter<string>();
+  @Output() playCard = new EventEmitter<number>();
   @Input() isPlayerTurn: boolean = false;
   @Input() endTimestamp: number = 0;
   @Input() clientIsPlayer: boolean = false;
@@ -42,4 +43,16 @@ export class PlayerComponent {
     draw: 'Draw',
     '': '',
   };
+
+  onCardClick(cardIndex: number) {
+    if (this.clientIsPlayer && this.isPlayerTurn) {
+      this.playCard.emit(cardIndex);
+    }
+  }
+
+  canPlayCard(card: Card): boolean {
+    // For now, allow any card when it's the player's turn
+    // The backend will validate the actual SWICK rules
+    return this.clientIsPlayer && this.isPlayerTurn;
+  }
 }
