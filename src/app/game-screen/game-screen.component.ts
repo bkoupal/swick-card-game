@@ -36,7 +36,7 @@ export class GameScreenComponent {
     return (smallScreen ? placePlayersAtMobileTable : placePlayersAtTable)(
       [...this.game.room!.state.players.values()],
       this.game.room!.sessionId,
-      gameConfig.maxClients
+      gameConfig.tablePositions
     );
   }
 
@@ -44,5 +44,35 @@ export class GameScreenComponent {
     const trumpCard = this.game.room?.state.trumpCard;
     if (!trumpCard?.value) return '';
     return `${trumpCard.value.value} of ${trumpCard.value.suit}`;
+  }
+
+  getPlayerName(playerId: string): string {
+    const player = this.game.room?.state.players.get(playerId);
+    return player?.displayName || 'Unknown';
+  }
+
+  getCurrentPlayerName(): string {
+    if (!this.game.room?.state.currentTurnPlayerId) return '';
+
+    const currentPlayer = this.game.room.state.players.get(
+      this.game.room.state.currentTurnPlayerId
+    );
+    return currentPlayer?.displayName || 'Unknown Player';
+  }
+
+  getTrickWinnerName(): string {
+    // During trick-complete state, the winner is stored in trickLeaderId
+    if (this.game.room?.state.roundState === 'trick-complete') {
+      const winnerId = this.game.room.state.trickLeaderId;
+      const winner = this.game.room.state.players.get(winnerId);
+      return winner?.displayName || 'Unknown';
+    }
+
+    // Fallback to last completed trick
+    const lastTrick = this.game.room?.state.completedTricks.at(-1);
+    if (!lastTrick) return '';
+
+    const winner = this.game.room?.state.players.get(lastTrick.winnerId);
+    return winner?.displayName || 'Unknown';
   }
 }

@@ -744,7 +744,7 @@ export class GameRoom extends Room<GameState> {
   /**
    * Completes the current trick and determines the winner
    */
-  private completeTrick() {
+  private async completeTrick() {
     const trickWinner = this.determineTrickWinner(this.state.currentTrick);
     if (!trickWinner) {
       this.log('Error: No trick winner determined');
@@ -757,11 +757,20 @@ export class GameRoom extends Room<GameState> {
       } (${this.state.players.get(trickWinner.playerId)?.displayName})`
     );
 
-    // Create completed trick record
+    // Create completed trick record BEFORE showing the message
     const completedTrick = new CompletedTrick(this.state.currentTrickNumber);
     completedTrick.playedCards.push(...this.state.currentTrick);
     completedTrick.winnerId = trickWinner.playerId;
     this.state.completedTricks.push(completedTrick);
+
+    // Set the current trick winner for display purposes
+    this.state.trickLeaderId = trickWinner.playerId; // Temporarily store winner here
+
+    // PAUSE to show the completed trick and winner
+    this.state.roundState = 'trick-complete';
+
+    // Wait for 3 seconds to show the trick result
+    await this.delay(3000);
 
     // Clear current trick
     this.state.currentTrick.clear();
@@ -774,7 +783,6 @@ export class GameRoom extends Room<GameState> {
     } else {
       // Start next trick - winner leads
       this.state.currentTrickNumber++;
-      this.state.trickLeaderId = trickWinner.playerId;
       this.state.currentTurnPlayerId = trickWinner.playerId;
 
       this.log(
@@ -783,7 +791,8 @@ export class GameRoom extends Room<GameState> {
         } (${this.state.players.get(trickWinner.playerId)?.displayName})`
       );
 
-      // Reset timeout for next trick
+      // Resume turns
+      this.state.roundState = 'turns';
       this.setInactivitySkipTimeout();
     }
   }

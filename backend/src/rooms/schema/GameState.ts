@@ -210,6 +210,7 @@ export class GameState extends Schema {
     | 'trump-selection'
     | 'knock-in'
     | 'turns'
+    | 'trick-complete'
     | 'end' = 'idle';
   @type('string') currentTurnPlayerId: string;
   @type('uint64') currentTurnTimeoutTimestamp: number = 0;

@@ -38,13 +38,36 @@
   </div>
 
   <div class="grid place-items-center py-8 w-min">
+    <!-- ADD this new div for trick cards at the very top -->
+    <div
+      class="absolute left-1/2 transform -translate-x-1/2 z-20"
+      style="top: 15%"
+    >
+      <!-- Show played cards in current trick -->
+      <div
+        *ngIf="
+          game.room!.state.currentTrick &&
+          game.room!.state.currentTrick.length > 0
+        "
+        class="table-font text-amber-50 font-serif text-center"
+      >
+        <div class="font-bold mb-2">
+          Trick {{ game.room!.state.currentTrickNumber }}
+        </div>
+        <div class="flex justify-center gap-2 flex-wrap">
+          <div
+            *ngFor="let playedCard of game.room!.state.currentTrick"
+            class="flex flex-col items-center"
+          >
+            <app-card [card]="playedCard.card" class="scale-75"></app-card>
+            <span class="text-xs mt-1">
+              {{ getPlayerName(playedCard.playerId) }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="player-holder row-start-1 col-start-1">
-      <app-player
-        [type]="'dealer'"
-        [dealerHand]="game.room!.state.dealerHand"
-        [scoreBottom]="true"
-      ></app-player>
-
       <app-player
         *ngFor="let player of getAllPlayers(smallScreen$ | async); index as i"
         [style.z-index]="10 - Math.round(getPlayerPosition(i) * 10)"
@@ -69,6 +92,7 @@
     >
       <span class="table-font-xl">Swick</span><br />
       <span class="table-font-lg">Knock In, Play Bold, Don't Go Set</span>
+
       <!-- Show trump card during trump selection phase -->
       <div
         *ngIf="game.room!.state.trumpCard && game.trumpSelectionPhase"
@@ -115,6 +139,22 @@
       class="row-start-1 col-start-1 z-10 table-font-xl pill-popup"
     >
       Knock in to play this hand
+    </div>
+    <div
+      *ngIf="game.room!.state.roundState === 'turns'"
+      class="row-start-1 col-start-1 z-10 table-font-xl pill-popup"
+    >
+      <span *ngIf="game.playersTurn">Your turn - click a card</span>
+      <span *ngIf="!game.playersTurn">
+        {{ getCurrentPlayerName() }}'s turn
+      </span>
+    </div>
+    <div
+      *ngIf="game.room!.state.roundState === 'trick-complete'"
+      class="row-start-1 col-start-1 z-10 table-font pill-popup"
+    >
+      Trick {{ game.room!.state.currentTrickNumber }} won by:
+      {{ getTrickWinnerName() }}
     </div>
   </div>
 

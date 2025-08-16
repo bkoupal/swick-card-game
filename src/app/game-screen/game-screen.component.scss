@@ -35,7 +35,7 @@
     position: absolute;
 
     $angleStep: calc(360 / $players-count);
-    $angle: 270;
+    $angle: 315; // Was 270, now adjusted for 8-position layout
 
     @for $i from 1 through $players-count {
       &:nth-child(#{$i}) {
