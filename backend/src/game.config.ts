@@ -1,5 +1,6 @@
 export default {
   maxClients: 6,
+  tablePositions: 8, // 6 player seats + 2 spacing positions
   roomIdLength: 4,
   minPlayers: 3, // SWICK requires minimum 3 players
 
