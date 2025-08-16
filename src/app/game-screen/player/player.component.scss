@@ -20,8 +20,13 @@
   outline-style: solid;
 }
 
+/* Default player box styling */
+:host > div:first-child {
+  background-color: #525252; /* neutral-600 - default gray background */
+}
+
 .dealer-box {
-  background-color: #451a03 !important; /* brown-950 - darker background */
+  background-color: #dc2626 !important; /* red-600 - bright red background for dealer */
   outline-color: #fb923c; /* orange-400 */
   outline-width: 2px;
   outline-style: solid;
