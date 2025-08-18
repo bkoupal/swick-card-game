@@ -212,6 +212,7 @@ export class GameState extends Schema {
     | 'turns'
     | 'trick-complete'
     | 'end' = 'idle';
+  @type('string') currentKnockPlayerId: string = ''; // Player whose turn it is to knock
   @type('string') currentTurnPlayerId: string;
   @type('uint64') currentTurnTimeoutTimestamp: number = 0;
   @type('uint64') nextRoundStartTimestamp: number = 0;
