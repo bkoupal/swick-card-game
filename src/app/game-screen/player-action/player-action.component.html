@@ -49,6 +49,29 @@
     <button (click)="knockIn.emit(false)" data-cy="pass">Pass</button>
   </div>
 
+  <!-- Discard/Draw Menu -->
+  <div class="pill-menu" *ngIf="discardDrawMenuVisible">
+    <span class="whitespace-normal">
+      Select cards from your hand, then choose:
+    </span>
+    <button
+      (click)="playCards.emit()"
+      data-cy="play-cards"
+      class="bg-green-600 hover:bg-green-700"
+    >
+      Play These Cards
+    </button>
+    <button
+      (click)="discardDraw.emit()"
+      data-cy="discard-draw"
+      [disabled]="selectedCardCount === 0"
+      [class.opacity-50]="selectedCardCount === 0"
+      [class.cursor-not-allowed]="selectedCardCount === 0"
+    >
+      Discard & Draw ({{ selectedCardCount }} cards)
+    </button>
+  </div>
+
   <div
     class="pill-menu"
     *ngIf="

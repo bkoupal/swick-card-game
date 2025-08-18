@@ -129,12 +129,24 @@ export class GameService {
     this.room?.send('knockIn', knockIn);
   }
 
+  public discardDraw() {
+    this._room?.send('discardDraw');
+  }
+
   public get isDealer() {
     return this._room?.state.dealerId === this._room?.sessionId;
   }
 
   public get trumpSelectionPhase() {
     return this._room?.state.roundState === 'trump-selection';
+  }
+
+  public playCards() {
+    this._room?.send('playCards');
+  }
+
+  public selectCard(cardIndex: number) {
+    this._room?.send('selectCard', cardIndex);
   }
 
   public get knockInPhase() {

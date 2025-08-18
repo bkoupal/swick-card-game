@@ -1,6 +1,7 @@
 <div
   class="card-container"
   [class.clickable-card]="isClickable"
+  [class.selected]="card.selected"
   (click)="onCardClick()"
 >
   <div class="card" [@hiddenVisible]="card.visible">

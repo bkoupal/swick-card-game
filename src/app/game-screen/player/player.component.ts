@@ -12,7 +12,8 @@ export class PlayerComponent {
   @Input() type: 'dealer' | 'player' = 'player';
   @Input() scoreBottom: boolean | null = false;
   @Input() isDealer: boolean = false; // Add this line
-
+  @Input() gameState?: any; // We'll pass the game state to check round state
+  @Output() selectCard = new EventEmitter<number>(); // Add this output
   // For this component:
   // Player = The player that is passed into the component, can be client or any other player
   // Client = The player that is using this game instance
@@ -47,12 +48,28 @@ export class PlayerComponent {
   onCardClick(cardIndex: number) {
     if (this.clientIsPlayer && this.isPlayerTurn) {
       this.playCard.emit(cardIndex);
+    } else if (this.clientIsPlayer && this.isDiscardDrawPhase()) {
+      // During discard/draw phase, clicking selects/deselects cards
+      this.selectCard.emit(cardIndex);
     }
   }
 
   canPlayCard(card: Card): boolean {
-    // For now, allow any card when it's the player's turn
+    if (this.isDiscardDrawPhase()) {
+      // During discard/draw, all cards are clickable for selection
+      return this.clientIsPlayer && this.isCurrentDiscardPlayer();
+    }
+
+    // During trick-taking, allow any card when it's the player's turn
     // The backend will validate the actual SWICK rules
     return this.clientIsPlayer && this.isPlayerTurn;
+  }
+
+  private isDiscardDrawPhase(): boolean {
+    return this.gameState?.roundState === 'discard-draw';
+  }
+
+  private isCurrentDiscardPlayer(): boolean {
+    return this.gameState?.currentDiscardPlayerId === this.player?.sessionId;
   }
 }
