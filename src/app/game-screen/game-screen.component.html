@@ -138,7 +138,17 @@
       *ngIf="game.knockInPhase"
       class="row-start-1 col-start-1 z-10 table-font-xl pill-popup"
     >
-      Knock in to play this hand
+      <div
+        *ngIf="game.room!.state.currentKnockPlayerId === game.room!.sessionId"
+      >
+        Your turn: Knock in to play this hand
+      </div>
+      <div
+        *ngIf="game.room!.state.currentKnockPlayerId !== game.room!.sessionId"
+      >
+        Waiting for
+        {{ getPlayerName(game.room!.state.currentKnockPlayerId) }} to knock
+      </div>
     </div>
     <div
       *ngIf="game.room!.state.roundState === 'turns'"
@@ -173,7 +183,11 @@
     [trumpSelectionMenuVisible]="game.trumpSelectionPhase && game.isDealer"
     [trumpCardDisplay]="getTrumpCardDisplay()"
     (keepTrump)="game.keepTrump($event)"
-    [knockInMenuVisible]="game.knockInPhase && !game.player?.hasKnockDecision"
+    [knockInMenuVisible]="
+      game.knockInPhase &&
+      !game.player?.hasKnockDecision &&
+      game.room!.state.currentKnockPlayerId === game.room!.sessionId
+    "
     [trumpSuit]="game.room!.state.trumpSuit"
     (knockIn)="game.knockIn($event)"
   ></app-player-actions>

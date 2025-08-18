@@ -178,6 +178,9 @@ export class GameRoom extends Room<GameState> {
       const player = this.state.players.get(client.sessionId);
       if (!player || player.hasKnockDecision) return;
 
+      // Only allow current knock player to make decision
+      if (client.sessionId !== this.state.currentKnockPlayerId) return;
+
       this.log(`Player ${knockIn ? 'knocks in' : 'passes'}`, client);
 
       player.knockedIn = knockIn;
@@ -189,7 +192,9 @@ export class GameRoom extends Room<GameState> {
         player.ready = false; // Remove from round
       }
 
-      this.checkAllKnockDecisions();
+      // Clear timeout and move to next player
+      this.inactivityTimeoutRef?.clear();
+      this.startNextKnockTurn();
     });
   }
 
@@ -442,6 +447,39 @@ export class GameRoom extends Room<GameState> {
     this.inactivityTimeoutRef?.clear();
 
     this.log(`Trump suit is: ${this.state.trumpSuit}`);
+
+    // Start with first non-dealer player in order they joined
+    this.startNextKnockTurn();
+  }
+
+  private startNextKnockTurn() {
+    // Get the next player who needs to make a knock decision
+    const activePlayers = [...this.state.players.values()].filter(
+      (p) => p.ready
+    );
+
+    // Create ordered list: non-dealers first (in join order), then dealer last
+    const nonDealers = activePlayers.filter(
+      (p) => p.sessionId !== this.state.dealerId
+    );
+    const dealer = activePlayers.find(
+      (p) => p.sessionId === this.state.dealerId
+    );
+    const orderedPlayers = [...nonDealers];
+    if (dealer) orderedPlayers.push(dealer);
+
+    // Find next player who hasn't made decision yet
+    const nextPlayer = orderedPlayers.find((p) => !p.hasKnockDecision);
+
+    if (nextPlayer) {
+      this.state.currentKnockPlayerId = nextPlayer.sessionId;
+      this.log(`It's ${nextPlayer.displayName}'s turn to knock`);
+      this.setInactivitySkipTimeout();
+    } else {
+      // All players have decided, check results
+      this.state.currentKnockPlayerId = '';
+      this.checkAllKnockDecisions();
+    }
   }
 
   private checkAllKnockDecisions() {
@@ -541,8 +579,23 @@ export class GameRoom extends Room<GameState> {
     this.inactivityTimeoutRef?.clear();
 
     this.inactivityTimeoutRef = this.clock.setTimeout(() => {
-      this.log('Inactivity timeout', this.state.currentTurnPlayerId);
-      this.turn();
+      if (this.state.roundState === 'knock-in') {
+        this.log(
+          'Inactivity timeout - auto passing',
+          this.state.currentKnockPlayerId
+        );
+        // Auto-pass for inactive player during knock phase
+        const player = this.state.players.get(this.state.currentKnockPlayerId);
+        if (player && !player.hasKnockDecision) {
+          player.knockedIn = false;
+          player.hasKnockDecision = true;
+          player.ready = false; // Remove from round
+        }
+        this.startNextKnockTurn();
+      } else {
+        this.log('Inactivity timeout', this.state.currentTurnPlayerId);
+        this.turn();
+      }
     }, gameConfig.inactivityTimeout);
   }
 
