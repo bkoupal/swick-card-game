@@ -75,4 +75,9 @@ export class GameScreenComponent {
     const winner = this.game.room?.state.players.get(lastTrick.winnerId);
     return winner?.displayName || 'Unknown';
   }
+
+  getSelectedCardCount(): number {
+    if (!this.game.player) return 0;
+    return this.game.player.hand.cards.filter((card) => card.selected).length;
+  }
 }

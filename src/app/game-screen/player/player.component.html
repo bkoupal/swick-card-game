@@ -25,7 +25,7 @@
       [attr.data-cy]="player ? 'player-name' : null"
       *ngIf="player"
     >
-      {{ type == "dealer" ? "Dealer" : player?.displayName || "No Player" }}
+      {{ type == "dealer" ? "Dealer" : player.displayName || "No Player" }}
     </span>
 
     <app-money-counter

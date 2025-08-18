@@ -21,6 +21,7 @@ export class CardValue extends Schema {
  */
 export class Card extends Schema {
   @type('boolean') visible: boolean;
+  @type('boolean') selected: boolean = false;
 
   @filter(function (this: Card) {
     return this.visible;
@@ -32,6 +33,7 @@ export class Card extends Schema {
     super();
 
     this.visible = visible;
+    this.selected = false;
 
     if (suit && value) {
       this.value = new CardValue({
@@ -201,6 +203,11 @@ export class Player extends Schema {
   // SWICK-specific player states
   @type('boolean') knockedIn = false; // Whether player "knocked in" to play this hand
   @type('boolean') hasKnockDecision = false; // Whether player has made knock decision yet
+  // Discard/draw phase states
+  @type('number') cardsToDiscard = 0; // Number of cards player wants to discard (0-3)
+  @type([Card]) discardedCards = new ArraySchema<Card>(); // Cards the player discarded
+  @type('boolean') hasDiscardDecision = false; // Whether player has made discard decision yet
+  @type([Card]) selectedCards = new ArraySchema<Card>(); // Cards the player has selected for discard
 }
 
 export class GameState extends Schema {
@@ -209,9 +216,11 @@ export class GameState extends Schema {
     | 'dealing'
     | 'trump-selection'
     | 'knock-in'
+    | 'discard-draw'
     | 'turns'
     | 'trick-complete'
     | 'end' = 'idle';
+  @type('string') currentDiscardPlayerId: string = '';
   @type('string') currentKnockPlayerId: string = ''; // Player whose turn it is to knock
   @type('string') currentTurnPlayerId: string;
   @type('uint64') currentTurnTimeoutTimestamp: number = 0;

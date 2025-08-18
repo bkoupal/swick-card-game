@@ -82,7 +82,9 @@
           (getPlayerPosition(i) <= 0.25 && getPlayerPosition(i) != 0)
         "
         [isDealer]="player?.sessionId === game.room!.state.dealerId"
+        [gameState]="game.room!.state"
         (playCard)="game.playCard($event)"
+        (selectCard)="game.selectCard($event)"
         (kick)="game.kick($event)"
       ></app-player>
     </div>
@@ -151,6 +153,26 @@
       </div>
     </div>
     <div
+      *ngIf="game.room!.state.roundState === 'discard-draw'"
+      class="row-start-1 col-start-1 z-10 table-font-xl pill-popup"
+    >
+      <div
+        *ngIf="game.room!.state.currentDiscardPlayerId === game.room!.sessionId"
+      >
+        <div>Your turn: Click cards to select, then choose action</div>
+        <div *ngIf="getSelectedCardCount() > 0" class="text-sm mt-1">
+          {{ getSelectedCardCount() }} card(s) selected for discard
+        </div>
+      </div>
+      <div
+        *ngIf="game.room!.state.currentDiscardPlayerId !== game.room!.sessionId"
+      >
+        Waiting for
+        {{ getPlayerName(game.room!.state.currentDiscardPlayerId) }} to
+        discard/draw
+      </div>
+    </div>
+    <div
       *ngIf="game.room!.state.roundState === 'turns'"
       class="row-start-1 col-start-1 z-10 table-font-xl pill-popup"
     >
@@ -190,6 +212,13 @@
     "
     [trumpSuit]="game.room!.state.trumpSuit"
     (knockIn)="game.knockIn($event)"
+    [discardDrawMenuVisible]="
+      game.room!.state.roundState === 'discard-draw' &&
+      game.room!.state.currentDiscardPlayerId === game.room!.sessionId
+    "
+    [selectedCardCount]="getSelectedCardCount()"
+    (playCards)="game.playCards()"
+    (discardDraw)="game.discardDraw()"
   ></app-player-actions>
 
   <span class="text-neutral-400 self-end" data-cy="roomId-value">

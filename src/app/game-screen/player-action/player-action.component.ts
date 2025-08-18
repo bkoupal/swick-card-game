@@ -30,5 +30,10 @@ export class PlayerActionsComponent {
   @Input() trumpSuit = '';
   @Output() knockIn = new EventEmitter<boolean>();
 
+  @Input() discardDrawMenuVisible = false;
+  @Input() selectedCardCount = 0;
+  @Output() playCards = new EventEmitter<void>();
+  @Output() discardDraw = new EventEmitter<void>();
+
   gameConfig = gameConfig;
 }
