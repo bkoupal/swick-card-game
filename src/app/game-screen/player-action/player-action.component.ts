@@ -35,5 +35,19 @@ export class PlayerActionsComponent {
   @Output() playCards = new EventEmitter<void>();
   @Output() discardDraw = new EventEmitter<void>();
 
+  @Input() isDealer = false;
+  allowedAntes = [3, 6, 9, 12, 15];
+
   gameConfig = gameConfig;
+
+  /**
+   * Are non-dealers waiting for dealer to set ante?
+   */
+  get isWaitingForAnteSet(): boolean {
+    if (this.isDealer) return false;
+
+    // For non-dealers, check if their bet is still the default
+    // This should update when dealer sets ante and it propagates to all players
+    return this.currentBet <= 3; // Changed from === to <= to be safe
+  }
 }
