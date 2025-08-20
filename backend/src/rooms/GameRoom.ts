@@ -179,7 +179,19 @@ export class GameRoom extends Room<GameState> {
         const dealer = this.state.players.get(client.sessionId);
         if (this.state.trumpCard) {
           dealer.hand.cards.push(this.state.trumpCard);
+
+          // TRACK THAT DEALER KEPT TRUMP
+          this.state.dealerKeptTrump = true;
+          this.state.dealerTrumpValue = this.state.trumpCard.value!.value;
+
+          this.log(
+            `Dealer kept trump: ${this.state.dealerTrumpValue} of ${this.state.trumpSuit}`
+          );
         }
+      } else {
+        // Dealer discarded trump
+        this.state.dealerKeptTrump = false;
+        this.state.dealerTrumpValue = '';
       }
 
       // Set trump suit based on the trump card
@@ -321,6 +333,26 @@ export class GameRoom extends Room<GameState> {
 
       const player = this.state.players.get(client.sessionId);
       if (!player || player.hasDiscardDecision) return;
+
+      // SPECIAL CASE: Dealer with trump card has 4 cards
+      if (
+        client.sessionId === this.state.dealerId &&
+        player.hand.cards.length > 3
+      ) {
+        this.log(
+          `Dealer has ${player.hand.cards.length} cards - must discard 1 card (not trump) before playing`
+        );
+        // Force dealer into final discard mode
+        player.dealerCompletedNormalDiscard = true;
+        player.hasDiscardDecision = false;
+
+        // Clear selections and stay in discard phase
+        for (const card of player.hand.cards) {
+          card.selected = false;
+        }
+        this.setInactivitySkipTimeout();
+        return;
+      }
 
       this.log(`Player chooses to play with current cards`, client);
 
@@ -630,6 +662,26 @@ export class GameRoom extends Room<GameState> {
     // Reset and shuffle the deck before each hand (SWICK rule)
     this.state.deck.reset();
 
+    // RESET GOING SET FIELDS FOR NEW ROUND
+    this.state.dealerKeptTrump = false;
+    this.state.dealerTrumpValue = '';
+    // Don't reset nextRoundPotBonus here - it's used for current round pot
+
+    // Reset player states for new hand
+    for (const player of this.state.players.values()) {
+      if (player.ready) {
+        player.knockedIn = false;
+        player.hasKnockDecision = false;
+        player.roundOutcome = '';
+
+        // RESET GOING SET TRACKING
+        player.tricksWon = 0;
+        player.wentSet = false;
+        player.setAmount = 0;
+        player.setType = '';
+      }
+    }
+
     // Determine dealer (rotate each hand based on roundIteratorOffset)
     const allPlayers = [...this.state.players.values()].filter((p) => p.ready);
     const dealerIndex = this.roundIteratorOffset % allPlayers.length;
@@ -651,24 +703,54 @@ export class GameRoom extends Room<GameState> {
       }
     }
 
+    // REPLACE the ante collection with this SWICK-correct logic:
     for (const playerId of this.makeRoundIterator()) {
       const player = this.state.players.get(playerId);
 
-      //Take money for ante from player account
-      // Dealer antes extra amount as per SWICK rules
-      const anteAmount =
-        playerId === this.state.dealerId
-          ? player.bet + gameConfig.dealerExtraAnte
-          : player.bet;
+      // SWICK Rule: Only dealer pays ante if players went set last round
+      const shouldPayAnte =
+        this.state.nextRoundPotBonus > 0
+          ? playerId === this.state.dealerId // Only dealer pays if someone went set
+          : true; // Everyone pays if no one went set
 
-      player.money -= anteAmount;
-      this.state.potValue += anteAmount;
+      if (shouldPayAnte) {
+        let anteAmount;
+        if (playerId === this.state.dealerId) {
+          if (this.state.nextRoundPotBonus > 0) {
+            // When players went set, dealer only pays extra ante (3¢)
+            anteAmount = gameConfig.dealerExtraAnte;
+          } else {
+            // Normal round, dealer pays base + extra (6¢ total)
+            anteAmount = player.bet + gameConfig.dealerExtraAnte;
+          }
+        } else {
+          // Non-dealers always pay base ante when they pay
+          anteAmount = player.bet;
+        }
+
+        player.money -= anteAmount;
+        this.state.potValue += anteAmount;
+        this.log(`${player.displayName} antes ${anteAmount}¢`);
+      } else {
+        this.log(
+          `${player.displayName} gets free ride (players went set last round)`
+        );
+      }
 
       //Deal player 3 cards from the deck (SWICK rule)
       player.hand.clear();
       player.hand.addCardFromDeck(this.state.deck, true); // Card 1
       player.hand.addCardFromDeck(this.state.deck, true); // Card 2
       player.hand.addCardFromDeck(this.state.deck, true); // Card 3
+    }
+
+    // ADD POT BONUS FROM PREVIOUS ROUND GOING SET
+    if (this.state.nextRoundPotBonus > 0) {
+      this.log(
+        `Adding ${this.state.nextRoundPotBonus}¢ to pot from players who went set last round`
+      );
+      this.state.potValue += this.state.nextRoundPotBonus;
+      this.state.nextRoundPotBonus = 0; // Clear the bonus after using it
     }
 
     // Draw the trump card (next card after all players are dealt)
@@ -987,17 +1069,26 @@ export class GameRoom extends Room<GameState> {
 
   private async endRound() {
     this.log(`Starting end phase`);
-
     this.state.roundState = 'end';
+
+    // CALCULATE GOING SET AND AWARD WINNINGS
+    this.calculateGoingSet();
+    this.awardTrickWinnings();
 
     // TODO: SWICK scoring logic will be implemented in Step 5
     // For now, just end the hand and reset for next round
 
-    // Delay before starting next phase
-    await this.delay(
+    // Delay before starting next phase - extra time if players went set
+    const baseDelay =
       gameConfig.roundStateEndTimeBase +
-        this.state.players.size * gameConfig.roundStateEndTimePlayer
+      this.state.players.size * gameConfig.roundStateEndTimePlayer;
+
+    const hasGoingSetResults = [...this.state.players.values()].some(
+      (p) => p.wentSet
     );
+    const extraDelayForGoingSet = hasGoingSetResults ? 3000 : 0; // Extra 3 seconds
+
+    await this.delay(baseDelay + extraDelayForGoingSet);
 
     // Clear trick data for next hand
     this.state.currentTrick.clear();
@@ -1190,6 +1281,15 @@ export class GameRoom extends Room<GameState> {
     if (!trickWinner) {
       this.log('Error: No trick winner determined');
       return;
+    }
+
+    // INCREMENT TRICK COUNT FOR WINNER
+    const winner = this.state.players.get(trickWinner.playerId);
+    if (winner) {
+      winner.tricksWon++;
+      this.log(
+        `${winner.displayName} now has ${winner.tricksWon} trick(s) won`
+      );
     }
 
     this.log(
@@ -1475,6 +1575,123 @@ export class GameRoom extends Room<GameState> {
     }
 
     this.log(`Created ${handType} for ${player.displayName}`);
+  }
+
+  /**
+   * Calculates who goes set and how much they owe after all tricks are complete
+   */
+  private calculateGoingSet() {
+    this.log('=== CALCULATING GOING SET ===');
+
+    const knockedInPlayers = [...this.state.players.values()].filter(
+      (p) => p.ready && p.knockedIn
+    );
+
+    for (const player of knockedInPlayers) {
+      const isDealer = player.sessionId === this.state.dealerId;
+
+      this.log(
+        `Checking ${player.displayName} (${isDealer ? 'Dealer' : 'Player'}): ${
+          player.tricksWon
+        } tricks won`
+      );
+
+      // Determine if player goes set based on SWICK rules
+      let goesSet = false;
+      let setType = 'single';
+
+      if (isDealer && this.state.dealerKeptTrump) {
+        // Dealer kept trump - special rules apply
+        const trumpValue = this.state.dealerTrumpValue;
+        const isFaceTrump = ['J', 'Q', 'K', 'A'].includes(trumpValue);
+
+        if (isFaceTrump) {
+          // Face trump: must win 2 tricks or go set double
+          setType = 'double';
+          goesSet = player.tricksWon < 2;
+          this.log(
+            `  Dealer kept face trump (${trumpValue}) - needs 2 tricks, has ${player.tricksWon}`
+          );
+        } else {
+          // Low trump (7,8,9,10): must win 1 trick or go set single
+          setType = 'single';
+          goesSet = player.tricksWon < 1;
+          this.log(
+            `  Dealer kept low trump (${trumpValue}) - needs 1 trick, has ${player.tricksWon}`
+          );
+        }
+      } else {
+        // Standard player or dealer who didn't keep trump
+        setType = 'single';
+        goesSet = player.tricksWon < 1;
+        this.log(`  Standard player - needs 1 trick, has ${player.tricksWon}`);
+      }
+
+      // Apply going set
+      if (goesSet) {
+        player.wentSet = true;
+        player.setType = setType;
+
+        if (setType === 'double') {
+          player.setAmount = this.state.potValue * 2;
+          this.log(
+            `  ${player.displayName} GOES SET DOUBLE - owes ${player.setAmount}¢`
+          );
+        } else {
+          player.setAmount = this.state.potValue;
+          this.log(
+            `  ${player.displayName} GOES SET SINGLE - owes ${player.setAmount}¢`
+          );
+        }
+      } else {
+        this.log(
+          `  ${player.displayName} is safe with ${player.tricksWon} tricks`
+        );
+      }
+    }
+
+    // Calculate total set amount for next round
+    const totalSetAmount = knockedInPlayers
+      .filter((p) => p.wentSet)
+      .reduce((total, p) => total + p.setAmount, 0);
+
+    if (totalSetAmount > 0) {
+      this.state.nextRoundPotBonus = totalSetAmount;
+      this.log(`Total set amount for next round: ${totalSetAmount}¢`);
+    } else {
+      this.log('No players went set this round');
+    }
+  }
+
+  /**
+   * Awards trick winnings to players (1/3 of pot per trick)
+   */
+  private awardTrickWinnings() {
+    this.log('=== AWARDING TRICK WINNINGS ===');
+
+    const trickValue = Math.floor(this.state.potValue / 3);
+    this.log(`Each trick worth: ${trickValue}¢`);
+
+    const knockedInPlayers = [...this.state.players.values()].filter(
+      (p) => p.ready && p.knockedIn
+    );
+
+    for (const player of knockedInPlayers) {
+      if (player.tricksWon > 0) {
+        const winnings = player.tricksWon * trickValue;
+        player.money += winnings;
+        player.roundOutcome = 'win';
+        this.log(
+          `${player.displayName} wins ${winnings}¢ for ${player.tricksWon} trick(s)`
+        );
+      }
+    }
+
+    // Mark set players as losers
+    const setPlayers = knockedInPlayers.filter((p) => p.wentSet);
+    for (const player of setPlayers) {
+      player.roundOutcome = 'lose';
+    }
   }
 
   /**

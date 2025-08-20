@@ -35,6 +35,34 @@
     >
       <mat-icon>casino</mat-icon>
     </button>
+
+    <!-- Enhanced pot display with going set information -->
+    <div *ngIf="game.room!.state.potValue > 0" class="table-font mt-1">
+      <!--div class="flex flex-col items-center" -->
+      <div
+        class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg"
+      >
+        <!-- Main pot value -->
+        <div class="text-lg">💰 Pot: {{ game.room!.state.potValue }}¢</div>
+
+        <!-- Going set bonus indicator -->
+        <div
+          *ngIf="getNextRoundBonus() > 0"
+          class="text-yellow-400 text-sm mt-1 flex items-center"
+        >
+          <span class="mr-1">💸</span>
+          +{{ getNextRoundBonus() }}¢ next round
+        </div>
+
+        <!-- Total pot preview for next round -->
+        <div
+          *ngIf="getNextRoundBonus() > 0"
+          class="text-green-400 text-xs mt-1"
+        >
+          (Next pot starts at {{ getNextRoundBonus() + 3 }}¢)
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="grid place-items-center py-8 w-min">
@@ -193,6 +221,7 @@
       Trick {{ game.room!.state.currentTrickNumber }} won by:
       {{ getTrickWinnerName() }}
     </div>
+
     <!-- Special Hand Announcement (similar to trick winner display) -->
     <div
       *ngIf="game.room!.state.roundState === 'special-hand-win'"
@@ -232,6 +261,55 @@
             WINS {{ game.room!.state.specialHandPotValue }}¢!
           </div>
           <div class="text-sm text-gray-300 mt-2">Takes the entire pot!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Going Set Results Announcement (NEW) -->
+    <div
+      *ngIf="shouldShowGoingSetResults()"
+      class="absolute left-1/2 transform -translate-x-1/2 z-30"
+      style="top: 35%"
+    >
+      <div class="going-set-announcement text-center">
+        <!-- Going Set Title -->
+        <div
+          class="bg-gradient-to-r from-red-500 to-red-700 text-white font-bold text-2xl px-6 py-3 rounded-lg shadow-lg mb-4"
+        >
+          ⚠️ GOING SET RESULTS ⚠️
+        </div>
+
+        <!-- Going Set Details -->
+        <div
+          class="bg-gray-900 bg-opacity-90 text-white px-6 py-4 rounded-lg shadow-xl"
+        >
+          <div *ngFor="let setPlayer of getGoingSetPlayers()" class="mb-3">
+            <div class="text-lg font-bold">
+              {{ setPlayer.name }}
+            </div>
+            <div
+              class="text-md mb-1"
+              [ngClass]="
+                setPlayer.type === 'double' ? 'text-red-400' : 'text-orange-400'
+              "
+            >
+              Went Set {{ setPlayer.type | titlecase }}
+              <span *ngIf="setPlayer.type === 'double'">💸💸</span>
+              <span *ngIf="setPlayer.type === 'single'">💸</span>
+            </div>
+            <div class="text-xl font-bold text-red-300">
+              Owes {{ setPlayer.amount }}¢
+            </div>
+          </div>
+
+          <div class="border-t border-gray-600 pt-3 mt-3">
+            <div class="text-lg font-bold text-yellow-400">
+              Total Bonus Next Round: {{ getTotalGoingSetBonus() }}¢
+            </div>
+            <div class="text-sm text-gray-300 mt-1">
+              Only dealer pays ante next round!
+            </div>
+          </div>
         </div>
       </div>
     </div>
