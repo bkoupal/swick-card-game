@@ -26,6 +26,31 @@
       *ngIf="player"
     >
       {{ type == "dealer" ? "Dealer" : player.displayName || "No Player" }}
+
+      <!-- Going Set Indicators -->
+      <span
+        *ngIf="player.wentSet && player.setType === 'single'"
+        class="text-red-400 ml-1"
+        matTooltip="Went Set Single - owes {{ player.setAmount }}¢"
+      >
+        💸
+      </span>
+      <span
+        *ngIf="player.wentSet && player.setType === 'double'"
+        class="text-red-600 ml-1"
+        matTooltip="Went Set Double - owes {{ player.setAmount }}¢"
+      >
+        💸💸
+      </span>
+
+      <!-- Tricks Won Indicator (during/after rounds) -->
+      <span
+        *ngIf="shouldShowTricksWon()"
+        class="text-yellow-400 text-xs ml-1"
+        matTooltip="{{ player.tricksWon }} trick(s) won"
+      >
+        🏆{{ player.tricksWon }}
+      </span>
     </span>
 
     <app-money-counter

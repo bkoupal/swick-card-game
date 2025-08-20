@@ -93,4 +93,63 @@ export class GameScreenComponent {
       this.game.room!.state.roundState === 'discard-draw'
     );
   }
+
+  get currentPotValue(): number {
+    return this.game.room?.state?.potValue || 0;
+  }
+
+  get showPotDisplay(): boolean {
+    return !!(
+      this.game.room?.state && this.game.room.state.roundState !== 'idle'
+    );
+  }
+
+  // GOING SET METHODS
+
+  /**
+   * Should we show going set results popup?
+   */
+  shouldShowGoingSetResults(): boolean {
+    return (
+      this.game.room?.state.roundState === 'end' &&
+      this.getGoingSetPlayers().length > 0
+    );
+  }
+
+  /**
+   * Get list of players who went set this round
+   */
+  getGoingSetPlayers(): Array<{ name: string; amount: number; type: string }> {
+    if (!this.game.room?.state) return [];
+
+    const setPlayers = [];
+    for (const player of this.game.room.state.players.values()) {
+      if (player.wentSet && player.setAmount) {
+        setPlayers.push({
+          name: player.displayName,
+          amount: player.setAmount,
+          type: player.setType || 'single',
+        });
+      }
+    }
+
+    return setPlayers;
+  }
+
+  /**
+   * Get total going set bonus for next round
+   */
+  getTotalGoingSetBonus(): number {
+    return this.getGoingSetPlayers().reduce(
+      (total, player) => total + player.amount,
+      0
+    );
+  }
+
+  /**
+   * Get the going set bonus for next round
+   */
+  getNextRoundBonus(): number {
+    return this.game.room?.state.nextRoundPotBonus || 0;
+  }
 }

@@ -91,4 +91,19 @@ export class PlayerComponent {
   private isCurrentDiscardPlayer(): boolean {
     return this.gameState?.currentDiscardPlayerId === this.player?.sessionId;
   }
+
+  /**
+   * Should we show tricks won indicator?
+   */
+  shouldShowTricksWon(): boolean {
+    if (!this.player || !this.gameState) return false;
+
+    // Show during trick-taking, trick-complete, and end phases
+    const showDuringStates = ['turns', 'trick-complete', 'end'];
+    return (
+      showDuringStates.includes(this.gameState.roundState) &&
+      this.player.knockedIn &&
+      this.player.tricksWon >= 0
+    );
+  }
 }

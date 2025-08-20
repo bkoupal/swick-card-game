@@ -215,6 +215,11 @@ export class Player extends Schema {
   @type('boolean') hasDiscardDecision = false; // Whether player has made discard decision yet
   @type([Card]) selectedCards = new ArraySchema<Card>(); // Cards the player has selected for discard
   @type('boolean') dealerCompletedNormalDiscard = false; // Whether dealer finished their normal discard/draw
+  // Going Set tracking
+  @type('number') tricksWon: number = 0; // Number of tricks won this round
+  @type('boolean') wentSet: boolean = false; // Whether player went set this round
+  @type('number') setAmount: number = 0; // Amount player owes for going set
+  @type('string') setType: string = ''; // 'single' or 'double' for dealers
 }
 
 export class GameState extends Schema {
@@ -253,6 +258,11 @@ export class GameState extends Schema {
   @type('string') specialHandType: string = ''; // Type: 'three-aces', 'three-sevens', 'akq-trump'
   @type('string') specialHandDescription: string = ''; // Human-readable description
   @type('number') specialHandPotValue: number = 0; // Pot value won
+
+  // Going Set tracking
+  @type('boolean') dealerKeptTrump: boolean = false; // Whether dealer kept the trump card
+  @type('string') dealerTrumpValue: string = ''; // Value of trump card dealer kept (for set requirements)
+  @type('number') nextRoundPotBonus: number = 0; // Extra pot from players who went set
 }
 
 export type roundOutcome = 'bust' | 'win' | 'lose' | 'draw' | '';
