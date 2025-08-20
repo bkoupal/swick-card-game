@@ -1,34 +1,31 @@
 <div class="flex flex-col-reverse sm:flex-col gap-4 m-4">
-  <div class="pill-menu" [attr.disabled]="betMenuDisabled ? true : null">
-    <span class="whitespace-normal">
-      Current Bet:
-      <span
-        class="inline-block text-center"
-        style="width: 4ch"
-        data-cy="bet-value"
-        >{{ currentBet }}</span
+  <!-- SWICK Ante Setting (Dealer Only) -->
+  <div *ngIf="!readyMenuHidden && isDealer && !ready" class="grid gap-1">
+    <span class="text-center table-font">Set Ante (Dealer)</span>
+    <div class="grid grid-cols-5 gap-1">
+      <button
+        *ngFor="let ante of allowedAntes"
+        mat-flat-button
+        [color]="currentBet === ante ? 'accent' : 'primary'"
+        [disabled]="betMenuDisabled"
+        (click)="setBet.emit(ante)"
+        class="text-xs px-2 py-1"
       >
-    </span>
+        {{ ante }}¢
+      </button>
+    </div>
+    <div class="text-xs text-center text-gray-400 mt-1">
+      Everyone antes {{ currentBet }}¢ + dealer pays {{ currentBet + 3 }}¢
+    </div>
+  </div>
 
-    <span class="whitespace-normal"> Change Bet: </span>
-    <button (click)="changeBet.emit(-50)">- 50</button>
-    <button (click)="changeBet.emit(-10)">- 10</button>
-    <button (click)="changeBet.emit(10)">+ 10</button>
-    <button (click)="changeBet.emit(50)">+ 50</button>
-
-    <button (click)="setBet.emit(+betInput.value)" data-cy="setBet-btn">
-      Set Bet:
-    </button>
-    <input
-      class="w-24"
-      #betInput
-      type="number"
-      [min]="gameConfig.minBet"
-      [max]="gameConfig.maxBet"
-      value="100"
-      appInputConstrain
-      data-cy="bet-input"
-    />
+  <!-- SWICK Ante Display (Non-Dealers) -->
+  <div *ngIf="!readyMenuHidden && !isDealer" class="grid gap-1">
+    <span class="text-center table-font">Ante Set by Dealer</span>
+    <div class="text-center bg-gray-700 rounded px-3 py-2">
+      <div class="text-lg font-bold">{{ currentBet }}¢</div>
+      <div class="text-xs text-gray-400">You will ante {{ currentBet }}¢</div>
+    </div>
   </div>
 
   <!-- Trump Selection Menu (only for dealer) -->
@@ -78,17 +75,32 @@
       !readyMenuHidden && !trumpSelectionMenuVisible && !knockInMenuVisible
     "
   >
-    <button style="flex-grow: 100" (click)="readyChange.emit(!ready)">
-      {{ ready ? "Not ready" : "Ready" }}
-    </button>
-    <div class="h-9">
-      <mat-checkbox
-        class="-mt-2.5 mr-4"
-        [checked]="autoReady"
-        (change)="autoReadyChange.emit($event.checked)"
-        matTooltip="Automatically sets player as ready after every round"
-        >Auto Ready</mat-checkbox
-      >
+    <!-- Show "Waiting for dealer to set ante" for non-dealers when ante is default -->
+    <div
+      *ngIf="!isDealer && isWaitingForAnteSet"
+      class="text-center text-yellow-400"
+    >
+      <div class="text-sm">Waiting for dealer</div>
+      <div class="text-xs">to set ante amount</div>
+    </div>
+
+    <!-- Normal ready controls when ante is set -->
+    <div
+      *ngIf="isDealer || !isWaitingForAnteSet"
+      class="flex items-center w-full"
+    >
+      <button style="flex-grow: 100" (click)="readyChange.emit(!ready)">
+        {{ ready ? "Not ready" : "Ready" }}
+      </button>
+      <div class="h-9">
+        <mat-checkbox
+          class="-mt-2.5 mr-4"
+          [checked]="autoReady"
+          (change)="autoReadyChange.emit($event.checked)"
+          matTooltip="Automatically sets player as ready after every round"
+          >Auto Ready</mat-checkbox
+        >
+      </div>
     </div>
   </div>
 

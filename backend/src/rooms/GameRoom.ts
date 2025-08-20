@@ -88,12 +88,23 @@ export class GameRoom extends Room<GameState> {
     // Client message listeners:
 
     this.onMessage('ready', (client, state: boolean) => {
-      //Cant change ready state during round
       if (this.state.roundState != 'idle' || typeof state != 'boolean') return;
 
-      this.log(`Ready state change: ${state}`, client);
+      const player = this.state.players.get(client.sessionId);
 
-      this.state.players.get(client.sessionId).ready = state;
+      // Prevent non-dealers from becoming ready if dealer hasn't set ante yet
+      if (state && client.sessionId !== this.state.dealerId) {
+        const dealer = this.state.players.get(this.state.dealerId);
+        if (dealer && dealer.bet === gameConfig.initialPlayerBet) {
+          this.log(
+            `${player.displayName} cannot ready - dealer must set ante first`
+          );
+          return;
+        }
+      }
+
+      this.log(`Ready state change: ${state}`, client);
+      player.ready = state;
       this.triggerNewRoundCheck();
     });
 
@@ -109,18 +120,31 @@ export class GameRoom extends Room<GameState> {
 
     this.onMessage('bet', (client, newBet: number) => {
       if (
-        this.state.roundState != 'idle' || //Cant change bet during round
-        this.state.players.get(client.sessionId).ready || //Cant change bet when ready
-        !Number.isInteger(newBet) // new bet is invalid
+        this.state.roundState != 'idle' ||
+        this.state.players.get(client.sessionId).ready ||
+        !Number.isInteger(newBet)
       )
         return;
+      // SWICK ante validation - must be 3, 6, 9, 12, or 15
+      const allowedAntes = [3, 6, 9, 12, 15];
+      if (!allowedAntes.includes(newBet)) {
+        this.log(`Invalid ante amount: ${newBet}. Must be 3, 6, 9, 12, or 15.`);
+        return;
+      }
+      // Only dealer can set ante
+      if (client.sessionId !== this.state.dealerId) {
+        this.log(`Non-dealer ${client.sessionId} tried to set ante`);
+        return;
+      }
 
-      //Constrain bet
-      newBet = Math.min(Math.max(newBet, gameConfig.minBet), gameConfig.maxBet);
+      this.log(`Dealer sets ante: ${newBet}¢`, client);
 
-      this.log(`Bet change: ${newBet}`, client);
+      // Set the ante for ALL players so the UI updates correctly
+      for (const player of this.state.players.values()) {
+        player.bet = newBet;
+      }
 
-      this.state.players.get(client.sessionId).bet = newBet;
+      this.log(`Ante ${newBet}¢ applied to all players`);
     });
 
     this.onMessage('playCard', (client, cardIndex: number) => {
@@ -572,6 +596,15 @@ export class GameRoom extends Room<GameState> {
 
     const playerArr = [...this.state.players.values()];
 
+    // ASSIGN DEALER EARLY (during idle state) so ante setting works
+    if (playerArr.length >= gameConfig.minPlayers) {
+      const dealerIndex = this.roundIteratorOffset % playerArr.length;
+      this.state.dealerId = playerArr[dealerIndex].sessionId;
+      this.log(
+        `Dealer assigned during idle: ${playerArr[dealerIndex].displayName}`
+      );
+    }
+
     // NEW: Require at least minPlayers and all of them “ready”
     if (
       playerArr.length < gameConfig.minPlayers ||
@@ -683,9 +716,9 @@ export class GameRoom extends Room<GameState> {
     }
 
     // Determine dealer (rotate each hand based on roundIteratorOffset)
-    const allPlayers = [...this.state.players.values()].filter((p) => p.ready);
-    const dealerIndex = this.roundIteratorOffset % allPlayers.length;
-    this.state.dealerId = allPlayers[dealerIndex].sessionId;
+    // const allPlayers = [...this.state.players.values()].filter((p) => p.ready);
+    // const dealerIndex = this.roundIteratorOffset % allPlayers.length;
+    // this.state.dealerId = allPlayers[dealerIndex].sessionId;
 
     this.log(
       `Dealer is: ${this.state.players.get(this.state.dealerId).displayName}`
