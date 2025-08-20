@@ -1,3 +1,3 @@
 export const environment = {
-  gameServer: 'ws://34.220.239.137:2567',
+  gameServer: 'ws://api.swickcardgame.com:2567',
 };
