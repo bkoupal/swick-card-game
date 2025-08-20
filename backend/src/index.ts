@@ -1,15 +1,26 @@
-/**
- * IMPORTANT:
- * ---------
- * Do not manually edit this file if you'd like to use Colyseus Arena
- *
- * If you're self-hosting (without Arena), you can manually instantiate a
- * Colyseus Server as documented here: 👉 https://docs.colyseus.io/server/api/#constructor-options
- */
-import { listen } from '@colyseus/arena';
+import { Server } from 'colyseus';
+import { createServer } from 'http';
+import express from 'express';
+import cors from 'cors';
+import { GameRoom } from './rooms/GameRoom';
 
-// Import arena config
-import arenaConfig from './arena.config';
+const app = express();
 
-// Create and listen on 2567 (or PORT environment variable.)
-listen(arenaConfig);
+// Enable CORS
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || 'https://play.swickcardgame.com',
+  })
+);
+
+const server = createServer(app);
+const gameServer = new Server({ server });
+
+// Define your room
+gameServer.define('gameRoom', GameRoom);
+
+const port = parseInt(process.env.PORT || '2567', 10);
+const host = '0.0.0.0';
+
+gameServer.listen(port, host);
+console.log(`⚔️  Listening on ws://${host}:${port}`);
