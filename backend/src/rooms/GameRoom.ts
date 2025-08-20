@@ -234,11 +234,52 @@ export class GameRoom extends Room<GameState> {
 
       const card = player.hand.cards[cardIndex];
 
-      // Toggle card selection (max 3 cards can be selected)
+      // Special case: Dealer final discard (after completing normal discard/draw)
+      const isDealerFinalDiscard =
+        client.sessionId === this.state.dealerId &&
+        player.hand.cards.length === 4 &&
+        player.dealerCompletedNormalDiscard;
+
+      if (isDealerFinalDiscard) {
+        // Check if trying to select trump card
+        if (
+          card.value?.suit === this.state.trumpSuit &&
+          card.value?.value === this.state.trumpCard?.value?.value
+        ) {
+          this.log(`Dealer cannot select trump card for discard`);
+          return;
+        }
+
+        // Clear other selections (can only select 1)
+        for (const otherCard of player.hand.cards) {
+          if (otherCard !== card) {
+            otherCard.selected = false;
+          }
+        }
+
+        // Toggle this card
+        card.selected = !card.selected;
+        this.log(
+          `Card ${card.selected ? 'selected' : 'deselected'} for final discard`
+        );
+        return;
+      }
+
+      // Normal discard logic (max 3 cards can be selected)
       if (card.selected) {
         card.selected = false;
         this.log(`Card deselected at index ${cardIndex}`, client);
       } else {
+        // Check if dealer is trying to select trump card
+        if (
+          client.sessionId === this.state.dealerId &&
+          card.value?.suit === this.state.trumpSuit &&
+          card.value?.value === this.state.trumpCard?.value?.value
+        ) {
+          this.log(`Dealer cannot select trump card for discard`);
+          return;
+        }
+
         // Count currently selected cards
         const selectedCount = player.hand.cards.filter(
           (c) => c.selected
@@ -291,6 +332,32 @@ export class GameRoom extends Room<GameState> {
         return;
       }
 
+      // Special case: Dealer final discard (after completing normal discard/draw)
+      const isDealerFinalDiscard =
+        client.sessionId === this.state.dealerId &&
+        player.dealerCompletedNormalDiscard;
+
+      if (isDealerFinalDiscard) {
+        // This is dealer's final discard - just remove the selected card, no drawing
+        if (selectedCards.length !== 1) {
+          this.log(`Dealer must select exactly 1 card for final discard`);
+          return;
+        }
+
+        this.log(
+          `Dealer final discard: ${selectedCards[0].value?.value} of ${selectedCards[0].value?.suit}`
+        );
+
+        // Remove the selected card
+        player.hand.cards = player.hand.cards.filter((card) => !card.selected);
+        player.hasDiscardDecision = true;
+
+        // Continue to trick-taking phase
+        this.startNextDiscardTurn();
+        return;
+      }
+
+      // Normal discard/draw logic
       this.log(
         `Player discards ${selectedCards.length} cards and draws new ones`,
         client
@@ -302,6 +369,29 @@ export class GameRoom extends Room<GameState> {
       // Draw new cards to replace discarded ones
       for (let i = 0; i < selectedCards.length; i++) {
         player.hand.addCardFromDeck(this.state.deck, true);
+      }
+
+      // Mark that dealer has completed their normal discard/draw
+      if (client.sessionId === this.state.dealerId) {
+        player.dealerCompletedNormalDiscard = true;
+
+        // Check if dealer now has 4 cards (kept trump card)
+        if (player.hand.cards.length > 3) {
+          this.log(
+            `Dealer has ${player.hand.cards.length} cards - needs to discard 1 more (not trump)`
+          );
+
+          // Clear any selected cards and reset decision flag for final discard
+          for (const card of player.hand.cards) {
+            card.selected = false;
+          }
+          player.hasDiscardDecision = false;
+
+          // Stay in discard phase for dealer's final discard
+          this.state.currentDiscardPlayerId = this.state.dealerId;
+          this.setInactivitySkipTimeout();
+          return;
+        }
       }
 
       player.hasDiscardDecision = true;
@@ -852,6 +942,7 @@ export class GameRoom extends Room<GameState> {
       player.knockedIn = false;
       player.hasKnockDecision = false;
       player.hasDiscardDecision = false;
+      player.dealerCompletedNormalDiscard = false;
 
       // Remove players that are still disconnected
       if (player.disconnected) this.deletePlayer(player.sessionId);

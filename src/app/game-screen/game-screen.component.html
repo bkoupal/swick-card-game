@@ -159,7 +159,12 @@
       <div
         *ngIf="game.room!.state.currentDiscardPlayerId === game.room!.sessionId"
       >
-        <div>Your turn: Click cards to select, then choose action</div>
+        <div *ngIf="isDealerFinalDiscard()">
+          Select 1 card to discard (cannot discard trump card)
+        </div>
+        <div *ngIf="!isDealerFinalDiscard()">
+          Your turn: Click cards to select, then choose action
+        </div>
         <div *ngIf="getSelectedCardCount() > 0" class="text-sm mt-1">
           {{ getSelectedCardCount() }} card(s) selected for discard
         </div>
