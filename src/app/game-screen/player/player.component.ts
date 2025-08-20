@@ -65,6 +65,42 @@ export class PlayerComponent {
     return this.clientIsPlayer && this.isPlayerTurn;
   }
 
+  /**
+   * Should this player's cards be visible to the current client?
+   */
+  shouldShowCards(): boolean {
+    // If this is the client's own player, always show cards
+    if (this.clientIsPlayer) {
+      return true;
+    }
+
+    // If this player is NOT the dealer, never show their cards to others
+    if (!this.isDealer) {
+      return false;
+    }
+
+    // If this player IS the dealer, only show cards after knock-in and discard/draw phases
+    const gameState = this.gameState;
+    if (!gameState) return false;
+
+    // Dealer cards are visible to others only during trick-taking phases
+    return (
+      gameState.roundState === 'turns' ||
+      gameState.roundState === 'trick-complete' ||
+      gameState.roundState === 'end'
+    );
+  }
+
+  /**
+   * Returns a card with visibility set to false (shows card back)
+   */
+  getHiddenCard(originalCard: Card): Card {
+    // Create a copy of the card with visible set to false
+    const hiddenCard = Object.assign({}, originalCard);
+    hiddenCard.visible = false;
+    return hiddenCard;
+  }
+
   private isDiscardDrawPhase(): boolean {
     return this.gameState?.roundState === 'discard-draw';
   }

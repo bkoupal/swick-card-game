@@ -6,11 +6,19 @@
 >
   <div class="card" [@hiddenVisible]="card.visible">
     <div class="card-face">
-      <div
-        class="grid items-center font-thin text-center h-full"
-        style="font-size: 2em"
-      >
-        ?
+      <div class="card-face card-back">
+        <img
+          src="assets/card-back.png"
+          alt="Card back"
+          class="card-back-image"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+        />
+        <!-- Fallback if image fails to load -->
+        <div class="card-back-fallback" style="display: none">
+          <div class="grid items-center text-center h-full text-white">
+            <div style="font-size: 1.5em">♠</div>
+          </div>
+        </div>
       </div>
     </div>
     <div

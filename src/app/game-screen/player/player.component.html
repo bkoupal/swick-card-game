@@ -82,7 +82,7 @@
       <div class="hand">
         <app-card
           *ngFor="let card of hand?.cards; let i = index"
-          [card]="card"
+          [card]="shouldShowCards() ? card : getHiddenCard(card)"
           [isClickable]="canPlayCard(card)"
           (cardClick)="onCardClick(i)"
         >
