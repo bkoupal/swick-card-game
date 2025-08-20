@@ -208,6 +208,7 @@ export class Player extends Schema {
   @type([Card]) discardedCards = new ArraySchema<Card>(); // Cards the player discarded
   @type('boolean') hasDiscardDecision = false; // Whether player has made discard decision yet
   @type([Card]) selectedCards = new ArraySchema<Card>(); // Cards the player has selected for discard
+  @type('boolean') dealerCompletedNormalDiscard = false; // Whether dealer finished their normal discard/draw
 }
 
 export class GameState extends Schema {

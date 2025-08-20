@@ -80,4 +80,17 @@ export class GameScreenComponent {
     if (!this.game.player) return 0;
     return this.game.player.hand.cards.filter((card) => card.selected).length;
   }
+
+  isDealerFinalDiscard(): boolean {
+    const cardCount = this.game.player?.hand?.cards?.length ?? 0;
+    const completedNormalDiscard =
+      this.game.player?.dealerCompletedNormalDiscard ?? false;
+
+    return (
+      this.game.isDealer &&
+      cardCount === 4 &&
+      completedNormalDiscard &&
+      this.game.room!.state.roundState === 'discard-draw'
+    );
+  }
 }
