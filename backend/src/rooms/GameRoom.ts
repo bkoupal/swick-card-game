@@ -194,7 +194,25 @@ export class GameRoom extends Room<GameState> {
 
       // Clear timeout and move to next player
       this.inactivityTimeoutRef?.clear();
-      this.startNextKnockTurn();
+
+      // Handle dealer vs non-dealer differently
+      if (client.sessionId === this.state.dealerId) {
+        // Dealer made decision
+        if (knockIn) {
+          // Dealer knocked in, start dealer discard phase
+          this.log(`Dealer knocked in - starting dealer discard phase`);
+          this.state.roundState = 'discard-draw';
+          this.state.currentDiscardPlayerId = this.state.dealerId;
+          this.setInactivitySkipTimeout();
+        } else {
+          // Dealer passed, end the hand
+          this.log(`Dealer passed - ending hand`);
+          this.endRound();
+        }
+      } else {
+        // Non-dealer made decision, continue with existing flow
+        this.startNextKnockTurn();
+      }
     });
 
     this.onMessage('selectCard', (client, cardIndex: number) => {
@@ -546,32 +564,46 @@ export class GameRoom extends Room<GameState> {
   }
 
   private startNextKnockTurn() {
-    // Get the next player who needs to make a knock decision
+    // Get NON-DEALER players who need to make a knock decision
     const activePlayers = [...this.state.players.values()].filter(
       (p) => p.ready
     );
 
-    // Create ordered list: non-dealers first (in join order), then dealer last
+    // Only non-dealers participate in initial knock-in phase
     const nonDealers = activePlayers.filter(
       (p) => p.sessionId !== this.state.dealerId
     );
-    const dealer = activePlayers.find(
-      (p) => p.sessionId === this.state.dealerId
-    );
-    const orderedPlayers = [...nonDealers];
-    if (dealer) orderedPlayers.push(dealer);
 
-    // Find next player who hasn't made decision yet
-    const nextPlayer = orderedPlayers.find((p) => !p.hasKnockDecision);
+    // Find next non-dealer who hasn't made decision yet
+    const nextPlayer = nonDealers.find((p) => !p.hasKnockDecision);
 
     if (nextPlayer) {
       this.state.currentKnockPlayerId = nextPlayer.sessionId;
       this.log(`It's ${nextPlayer.displayName}'s turn to knock`);
       this.setInactivitySkipTimeout();
     } else {
-      // All players have decided, check results
+      // All non-dealers have decided, check if any knocked in
       this.state.currentKnockPlayerId = '';
-      this.checkAllKnockDecisions();
+      this.checkNonDealerKnockDecisions();
+    }
+  }
+
+  private checkNonDealerKnockDecisions() {
+    const nonDealers = [...this.state.players.values()].filter(
+      (p) => p.ready && p.sessionId !== this.state.dealerId
+    );
+    const playersIn = nonDealers.filter((p) => p.knockedIn);
+
+    this.log(`Non-dealer players knocked in: ${playersIn.length}`);
+
+    if (playersIn.length === 0) {
+      // No non-dealers knocked in - end the hand, pot carries over
+      this.log(`No non-dealers knocked in - ending hand`);
+      this.endRound();
+    } else {
+      // Start discard/draw phase for non-dealers only
+      this.log(`Starting discard/draw phase for non-dealers`);
+      this.startDiscardDrawPhase();
     }
   }
 
@@ -623,33 +655,70 @@ export class GameRoom extends Room<GameState> {
   }
 
   private startNextDiscardTurn() {
-    // Get knocked-in players who need to make discard decisions
-    const knockedInPlayers = [...this.state.players.values()].filter(
-      (p) => p.ready && p.knockedIn
+    // Get NON-DEALER knocked-in players who need to make discard decisions
+    const knockedInNonDealers = [...this.state.players.values()].filter(
+      (p) => p.ready && p.knockedIn && p.sessionId !== this.state.dealerId
     );
 
-    // Create ordered list: non-dealers first (in join order), then dealer last
-    const nonDealers = knockedInPlayers.filter(
-      (p) => p.sessionId !== this.state.dealerId
-    );
-    const dealer = knockedInPlayers.find(
-      (p) => p.sessionId === this.state.dealerId
-    );
-    const orderedPlayers = [...nonDealers];
-    if (dealer) orderedPlayers.push(dealer);
-
-    // Find next player who hasn't made discard decision yet
-    const nextPlayer = orderedPlayers.find((p) => !p.hasDiscardDecision);
+    // Find next non-dealer who hasn't made discard decision yet
+    const nextPlayer = knockedInNonDealers.find((p) => !p.hasDiscardDecision);
 
     if (nextPlayer) {
       this.state.currentDiscardPlayerId = nextPlayer.sessionId;
       this.log(`It's ${nextPlayer.displayName}'s turn to discard/draw`);
       this.setInactivitySkipTimeout();
     } else {
-      // All players have made discard decisions, start trick-taking
+      // All non-dealers have made discard decisions
       this.state.currentDiscardPlayerId = '';
-      this.startTrickTakingPhase();
+
+      // Check if we're in dealer's discard phase
+      const dealer = this.state.players.get(this.state.dealerId);
+      if (dealer && dealer.knockedIn && !dealer.hasDiscardDecision) {
+        // Dealer has knocked in but hasn't made discard decision yet
+        this.state.currentDiscardPlayerId = this.state.dealerId;
+        this.log(`Dealer's turn to discard/draw`);
+        this.setInactivitySkipTimeout();
+      } else {
+        // Either dealer hasn't knocked in yet, or all discard decisions are complete
+        if (!dealer.hasKnockDecision) {
+          // Dealer hasn't made knock decision yet
+          this.startDealerDecisionPhase();
+        } else {
+          // All decisions complete, start trick-taking
+          this.startTrickTakingPhase();
+        }
+      }
     }
+  }
+
+  private startDealerDecisionPhase() {
+    this.log(`Starting dealer decision phase`);
+
+    const dealer = this.state.players.get(this.state.dealerId);
+    if (!dealer) {
+      this.log(`Error: No dealer found`);
+      this.endRound();
+      return;
+    }
+
+    // Check if any non-dealers knocked in
+    const nonDealersIn = [...this.state.players.values()].filter(
+      (p) => p.ready && p.knockedIn && p.sessionId !== this.state.dealerId
+    );
+
+    if (nonDealersIn.length === 0) {
+      // No non-dealers knocked in, so dealer doesn't get to play
+      this.log(`No non-dealers knocked in - ending hand`);
+      this.endRound();
+      return;
+    }
+
+    // Now dealer gets to make knock decision
+    this.state.roundState = 'knock-in';
+    this.state.currentKnockPlayerId = this.state.dealerId;
+
+    this.log(`Dealer's turn to knock`);
+    this.setInactivitySkipTimeout();
   }
 
   private startTrickTakingPhase() {
@@ -782,6 +851,7 @@ export class GameRoom extends Room<GameState> {
       player.roundOutcome = '';
       player.knockedIn = false;
       player.hasKnockDecision = false;
+      player.hasDiscardDecision = false;
 
       // Remove players that are still disconnected
       if (player.disconnected) this.deletePlayer(player.sessionId);
