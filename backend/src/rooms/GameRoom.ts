@@ -371,8 +371,9 @@ export class GameRoom extends Room<GameState> {
         player.hand.cards = player.hand.cards.filter((card) => !card.selected);
         player.hasDiscardDecision = true;
 
-        // Continue to trick-taking phase
-        this.startNextDiscardTurn();
+        // NOW ALL DISCARD/DRAW IS COMPLETE - CHECK FOR SPECIAL HANDS
+        this.log('Dealer completed final discard - all discard/draw complete');
+        this.startTrickTakingPhase(); // This will check special hands at the right time
         return;
       }
 
