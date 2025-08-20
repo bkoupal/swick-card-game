@@ -193,6 +193,48 @@
       Trick {{ game.room!.state.currentTrickNumber }} won by:
       {{ getTrickWinnerName() }}
     </div>
+    <!-- Special Hand Announcement (similar to trick winner display) -->
+    <div
+      *ngIf="game.room!.state.roundState === 'special-hand-win'"
+      class="absolute left-1/2 transform -translate-x-1/2 z-30"
+      style="top: 25%"
+    >
+      <div class="special-hand-announcement text-center">
+        <!-- Special Hand Title -->
+        <div
+          class="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-bold text-2xl px-6 py-3 rounded-lg shadow-lg mb-4"
+        >
+          🏆 SPECIAL HAND WIN! 🏆
+        </div>
+
+        <!-- Winner and Hand Description -->
+        <div
+          class="bg-gray-900 bg-opacity-90 text-white px-6 py-4 rounded-lg shadow-xl"
+        >
+          <div class="text-xl font-bold mb-2">
+            {{ getPlayerName(game.room!.state.specialHandWinner) }}
+          </div>
+          <div
+            class="text-lg mb-3"
+            [ngSwitch]="game.room!.state.specialHandType"
+          >
+            <span *ngSwitchCase="'three-aces'" class="text-red-400">
+              🃑 🃁 🂱 THREE ACES! 🃑 🃁 🂱
+            </span>
+            <span *ngSwitchCase="'three-sevens'" class="text-orange-400">
+              7 7 7 THREE SEVENS! 7 7 7
+            </span>
+            <span *ngSwitchCase="'akq-trump'" class="text-purple-400">
+              👑 A-K-Q OF {{ game.room!.state.trumpSuit }} 👑
+            </span>
+          </div>
+          <div class="text-2xl font-bold text-green-400">
+            WINS {{ game.room!.state.specialHandPotValue }}¢!
+          </div>
+          <div class="text-sm text-gray-300 mt-2">Takes the entire pot!</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <app-player-actions

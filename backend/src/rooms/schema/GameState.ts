@@ -186,6 +186,12 @@ export class Hand extends Schema {
     // This will be deprecated once we fully transition to deck-based drawing
     this.cards.push(new Card(undefined, undefined, visible));
   }
+
+  public addSpecificCard(value: Value, suit: Suit, visible = true) {
+    const card = new Card(suit, value, visible);
+    this.cards.push(card);
+    return card;
+  }
 }
 
 export class Player extends Schema {
@@ -220,6 +226,7 @@ export class GameState extends Schema {
     | 'discard-draw'
     | 'turns'
     | 'trick-complete'
+    | 'special-hand-win'
     | 'end' = 'idle';
   @type('string') currentDiscardPlayerId: string = '';
   @type('string') currentKnockPlayerId: string = ''; // Player whose turn it is to knock
@@ -240,6 +247,12 @@ export class GameState extends Schema {
   @type([CompletedTrick]) completedTricks = new ArraySchema<CompletedTrick>(); // History of completed tricks
   @type('string') trickLeaderId: string = ''; // Who leads the current trick
   @type('number') currentTrickNumber: number = 1; // Which trick we're on (1, 2, or 3)
+
+  // Special hand display fields
+  @type('string') specialHandWinner: string = ''; // Player ID who won with special hand
+  @type('string') specialHandType: string = ''; // Type: 'three-aces', 'three-sevens', 'akq-trump'
+  @type('string') specialHandDescription: string = ''; // Human-readable description
+  @type('number') specialHandPotValue: number = 0; // Pot value won
 }
 
 export type roundOutcome = 'bust' | 'win' | 'lose' | 'draw' | '';

@@ -45,7 +45,7 @@ export function placePlayersAtTable(
   );
 
   // DEBUG: Log the initial state
-  console.log('=== PLAYER POSITIONING DEBUG ===');
+  /*console.log('=== PLAYER POSITIONING DEBUG ===');
   console.log('Viewing Player ID:', playerId);
   console.log(
     'All Players:',
@@ -53,7 +53,7 @@ export function placePlayersAtTable(
   );
   console.log('Viewing Player Position in Array:', viewingPlayerPos);
   console.log('Available Seats:', availableSeats);
-
+  */
   // Place each real player in the rotated position
   for (let i = 0; i < realPlayers.length; i++) {
     // Calculate how many positions this player is from the viewing player
@@ -70,7 +70,7 @@ export function placePlayersAtTable(
     result[availableSeats[seatIndex]] = realPlayers[i];
 
     // DEBUG: Log each player placement
-    const clockPosition = [
+    /*const clockPosition = [
       '1:30pm',
       '3pm',
       '4:30pm',
@@ -83,6 +83,7 @@ export function placePlayersAtTable(
     console.log(
       `Player ${i} (${realPlayers[i]?.displayName}) -> Index ${availableSeats[seatIndex]} (${clockPosition}), Offset: ${offset}`
     );
+    */
   }
 
   // Ensure indices 6 and 7 are always undefined (spacing positions)
@@ -90,7 +91,7 @@ export function placePlayersAtTable(
   result[7] = undefined; // 12pm - old dealer position
 
   // DEBUG: Log final result
-  console.log('Final Result Array:');
+  /*console.log('Final Result Array:');
   result.forEach((player, index) => {
     const clockPosition = [
       '1:30pm',
@@ -107,7 +108,7 @@ export function placePlayersAtTable(
     );
   });
   console.log('=== END DEBUG ===');
-
+  */
   return result;
 }
 
