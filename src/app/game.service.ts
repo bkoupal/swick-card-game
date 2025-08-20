@@ -170,6 +170,8 @@ export class GameService {
 
     try {
       this._room = await room();
+      // ADD THIS LINE FOR TESTING SPECIAL HANDS:
+      (window as any).testRoom = this._room;
     } catch (error: any) {
       //Was not able to connect
 

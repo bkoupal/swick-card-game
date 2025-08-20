@@ -14,6 +14,17 @@ import {
   computeRoundOutcome,
 } from './utility';
 import { ArraySchema } from '@colyseus/schema';
+import { Suit, Value } from './schema/cardValues';
+
+/**
+ * Represents a special hand type with its priority
+ */
+interface SpecialHand {
+  type: 'three-aces' | 'three-sevens' | 'akq-trump';
+  priority: number; // Lower number = higher priority (1 is best)
+  playerId: string;
+  description: string;
+}
 
 export class GameRoom extends Room<GameState> {
   /** Current timeout skip reference */
@@ -36,6 +47,14 @@ export class GameRoom extends Room<GameState> {
       }`,
       msg
     );
+  }
+
+  /**
+   * Checks if a client is an admin
+   */
+  private isAdmin(sessionId: string): boolean {
+    const player = this.state.players.get(sessionId);
+    return player?.admin || false;
   }
 
   private async registerRoomId(): Promise<string> {
@@ -396,6 +415,44 @@ export class GameRoom extends Room<GameState> {
 
       player.hasDiscardDecision = true;
       this.startNextDiscardTurn();
+    });
+
+    this.onMessage('admin-check-special-hands', (client) => {
+      if (!this.isAdmin(client.sessionId)) return;
+
+      const specialHands = this.checkForSpecialHands();
+      this.log(`Found ${specialHands.length} special hands:`);
+      specialHands.forEach((hand) => {
+        this.log(`  ${hand.description} (Priority: ${hand.priority})`);
+      });
+    });
+
+    this.onMessage('admin-create-special-hand', (client, data: any) => {
+      if (!this.isAdmin(client.sessionId)) return;
+
+      const { playerId, handType } = data;
+      this.createTestSpecialHand(
+        playerId,
+        handType as 'three-aces' | 'three-sevens' | 'akq-trump'
+      );
+      this.log(`Admin ${client.sessionId} created ${handType} for ${playerId}`);
+    });
+
+    this.onMessage('admin-test-special-hands', (client) => {
+      if (!this.isAdmin(client.sessionId)) return;
+
+      const knockedInPlayers = [...this.state.players.values()]
+        .filter((p) => p.ready && p.knockedIn)
+        .map((p) => p.sessionId);
+
+      if (knockedInPlayers.length >= 3) {
+        this.createTestSpecialHand(knockedInPlayers[0], 'three-aces');
+        this.createTestSpecialHand(knockedInPlayers[1], 'three-sevens');
+        if (knockedInPlayers.length > 2) {
+          this.createTestSpecialHand(knockedInPlayers[2], 'akq-trump');
+        }
+        this.log('Admin created test special hands for multiple players');
+      }
     });
   }
 
@@ -811,27 +868,45 @@ export class GameRoom extends Room<GameState> {
     this.setInactivitySkipTimeout();
   }
 
-  private startTrickTakingPhase() {
-    this.log(`Starting trick-taking phase`);
-    this.state.roundState = 'turns';
-    this.state.currentTrickNumber = 1;
-    this.state.currentTrick.clear();
-    this.state.completedTricks.clear();
+  private async startTrickTakingPhase() {
+    this.log(`Checking for special hands before starting trick-taking...`);
 
-    // First trick is led by first player to dealer's left
+    // Check for special hands after all discard/draw is complete
+    const specialHands = this.checkForSpecialHands();
+
+    if (specialHands.length > 0) {
+      // Special hand detected - handle the win
+      await this.handleSpecialHandWin(specialHands);
+      return; // Don't proceed to trick-taking
+    }
+
+    // No special hands - proceed with normal trick-taking
+    this.log(`No special hands detected - starting normal trick-taking phase`);
+    this.state.roundState = 'turns';
+
+    // Initialize first trick
+    this.state.currentTrick.clear();
+    this.state.currentTrickNumber = 1;
+
+    // First player to dealer's left leads first trick
     const knockedInPlayers = [...this.state.players.values()]
       .filter((p) => p.ready && p.knockedIn)
       .map((p) => p.sessionId);
+
     const dealerIndex = knockedInPlayers.indexOf(this.state.dealerId);
     const firstPlayerIndex = (dealerIndex + 1) % knockedInPlayers.length;
-    const firstPlayerId = knockedInPlayers[firstPlayerIndex];
+    this.state.trickLeaderId = knockedInPlayers[firstPlayerIndex];
 
-    this.state.trickLeaderId = firstPlayerId;
-    this.state.currentTurnPlayerId = firstPlayerId;
+    this.log(
+      `${
+        this.state.players.get(this.state.trickLeaderId)?.displayName
+      } leads the first trick`
+    );
 
-    this.log(`First trick led by player after dealer: ${firstPlayerId}`);
-
+    // Set up the round iterator for trick-taking
     this.roundPlayersIdIterator = this.makeKnockedInIterator();
+    this.state.currentTurnPlayerId = this.state.trickLeaderId;
+
     this.setInactivitySkipTimeout();
   }
 
@@ -1234,6 +1309,171 @@ export class GameRoom extends Room<GameState> {
     return (
       getValue(card1.value?.value || '') > getValue(card2.value?.value || '')
     );
+  }
+
+  /**
+   * Checks if a player's hand contains a special winning combination
+   */
+  private checkPlayerForSpecialHand(player: Player): SpecialHand | null {
+    const cards = player.hand.cards;
+    if (cards.length !== 3) return null;
+
+    const values = cards.map((card) => card.value?.value).filter(Boolean);
+    const suits = cards.map((card) => card.value?.suit).filter(Boolean);
+
+    // Check for 3 Aces (priority 1 - highest)
+    if (values.every((val) => val === 'A')) {
+      return {
+        type: 'three-aces',
+        priority: 1,
+        playerId: player.sessionId,
+        description: `${player.displayName} has 3 Aces - the ultimate hand!`,
+      };
+    }
+
+    // Check for 3 7s (priority 2)
+    if (values.every((val) => val === '7')) {
+      return {
+        type: 'three-sevens',
+        priority: 2,
+        playerId: player.sessionId,
+        description: `${player.displayName} has 3 7s - a very strong hand!`,
+      };
+    }
+
+    // Check for A-K-Q of Trump (priority 3)
+    if (this.state.trumpSuit && values.length === 3) {
+      const hasAce =
+        values.includes('A') && suits.includes(this.state.trumpSuit);
+      const hasKing =
+        values.includes('K') && suits.includes(this.state.trumpSuit);
+      const hasQueen =
+        values.includes('Q') && suits.includes(this.state.trumpSuit);
+
+      // Verify all three cards are trump suit and are A, K, Q
+      const trumpCards = cards.filter(
+        (card) => card.value?.suit === this.state.trumpSuit
+      );
+      if (trumpCards.length === 3 && hasAce && hasKing && hasQueen) {
+        return {
+          type: 'akq-trump',
+          priority: 3,
+          playerId: player.sessionId,
+          description: `${player.displayName} has A-K-Q of ${this.state.trumpSuit} - a powerful trump sequence!`,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Checks all knocked-in players for special hands after discard/draw phase
+   */
+  private checkForSpecialHands(): SpecialHand[] {
+    const specialHands: SpecialHand[] = [];
+
+    for (const player of this.state.players.values()) {
+      if (player.ready && player.knockedIn) {
+        const specialHand = this.checkPlayerForSpecialHand(player);
+        if (specialHand) {
+          specialHands.push(specialHand);
+        }
+      }
+    }
+
+    // Sort by priority (lower number = higher priority)
+    return specialHands.sort((a, b) => a.priority - b.priority);
+  }
+
+  /**
+   * Handles special hand wins - awards the entire pot to the winner
+   */
+  private async handleSpecialHandWin(specialHands: SpecialHand[]) {
+    this.log(`Special hands detected: ${specialHands.length}`);
+    this.state.roundState = 'special-hand-win';
+
+    // The best special hand wins (lowest priority number)
+    const winningHand = specialHands[0];
+    const winner = this.state.players.get(winningHand.playerId);
+
+    if (!winner) {
+      this.log(`ERROR: Special hand winner not found: ${winningHand.playerId}`);
+      return;
+    }
+
+    // SET THE DISPLAY FIELDS FOR FRONTEND
+    this.state.specialHandWinner = winningHand.playerId;
+    this.state.specialHandType = winningHand.type;
+    this.state.specialHandDescription = winningHand.description;
+    this.state.specialHandPotValue = this.state.potValue;
+
+    this.log(`${winningHand.description}`);
+    this.log(
+      `${winner.displayName} wins the entire pot of ${this.state.potValue}¢ with ${winningHand.type}!`
+    );
+
+    // Award the entire pot to the winner
+    winner.money += this.state.potValue;
+    winner.roundOutcome = 'win';
+
+    // Mark all other players as losers
+    for (const player of this.state.players.values()) {
+      if (player.ready && player.sessionId !== winningHand.playerId) {
+        player.roundOutcome = 'lose';
+      }
+    }
+
+    // Wait for players to see the special hand result
+    await this.delay(5000);
+
+    // CLEAR THE DISPLAY FIELDS
+    this.state.specialHandWinner = '';
+    this.state.specialHandType = '';
+    this.state.specialHandDescription = '';
+    this.state.specialHandPotValue = 0;
+
+    // End the round
+    this.endRound();
+  }
+
+  /**
+   * Testing method to create special hands for debugging
+   */
+  private createTestSpecialHand(
+    playerId: string,
+    handType: 'three-aces' | 'three-sevens' | 'akq-trump'
+  ) {
+    const player = this.state.players.get(playerId);
+    if (!player) return;
+
+    // Clear current hand
+    player.hand.clear();
+
+    switch (handType) {
+      case 'three-aces':
+        player.hand.addSpecificCard('A', '♠︎', true);
+        player.hand.addSpecificCard('A', '♥︎', true);
+        player.hand.addSpecificCard('A', '♣︎', true);
+        break;
+
+      case 'three-sevens':
+        player.hand.addSpecificCard('7', '♠︎', true);
+        player.hand.addSpecificCard('7', '♥︎', true);
+        player.hand.addSpecificCard('7', '♣︎', true);
+        break;
+
+      case 'akq-trump':
+        // Create A-K-Q of trump suit
+        if (this.state.trumpSuit) {
+          player.hand.addSpecificCard('A', this.state.trumpSuit as Suit, true);
+          player.hand.addSpecificCard('K', this.state.trumpSuit as Suit, true);
+          player.hand.addSpecificCard('Q', this.state.trumpSuit as Suit, true);
+        }
+        break;
+    }
+
+    this.log(`Created ${handType} for ${player.displayName}`);
   }
 
   /**
