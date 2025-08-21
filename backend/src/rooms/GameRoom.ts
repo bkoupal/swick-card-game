@@ -92,6 +92,12 @@ export class GameRoom extends Room<GameState> {
 
       const player = this.state.players.get(client.sessionId);
 
+      // If dealer is becoming ready, mark that they have set ante (even if it's default 3¢)
+      if (state && client.sessionId === this.state.dealerId) {
+        this.state.dealerHasSetAnte = true;
+        this.log(`Dealer confirmed ante at ${player.bet}¢`);
+      }
+
       // Prevent non-dealers from becoming ready if dealer hasn't set ante yet
       if (state && client.sessionId !== this.state.dealerId) {
         if (!this.state.dealerHasSetAnte) {
