@@ -1,3 +1,6 @@
+<!-- Phase 1: Replace your existing join-screen.component.html with this -->
+<!-- This adds the game setup UI but doesn't change any functionality yet -->
+
 <div
   class="grid place-items-center min-h-full gap-8 p-4"
   style="grid-template-rows: auto 1fr auto"
@@ -7,8 +10,8 @@
     <div class="text-xl mt-8">A multiplayer Swick game</div>
   </header>
 
-  <div class="flex flex-col gap-8">
-    <!-- Player Name Selection -->
+  <div class="flex flex-col gap-8 w-full max-w-md">
+    <!-- Player Name Selection (unchanged) -->
     <div class="flex flex-col gap-4">
       <h3 class="text-center text-xl font-semibold">Choose Your Name</h3>
 
@@ -35,59 +38,159 @@
       </button>
     </div>
 
-    <!-- Room Actions -->
-    <div class="flex flex-col gap-4">
+    <!-- NEW: Game Setup Section (visual only for now) -->
+    <div class="flex flex-col gap-6 p-6 bg-gray-800 rounded-lg">
+      <h3 class="text-center text-xl font-semibold text-white">
+        Create New Game
+      </h3>
+
+      <!-- Total Players Selection -->
+      <div class="flex flex-col gap-2">
+        <label class="text-white font-medium">Total Players:</label>
+        <div class="flex gap-2 justify-center">
+          <button
+            *ngFor="let count of [3, 4, 5, 6]"
+            mat-raised-button
+            [color]="totalPlayers === count ? 'primary' : 'basic'"
+            (click)="setTotalPlayers(count)"
+            class="min-w-12"
+          >
+            {{ count }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Player Setup -->
+      <div class="flex flex-col gap-3">
+        <label class="text-white font-medium">Players:</label>
+
+        <!-- Player 1 (always you) -->
+        <div class="flex items-center justify-between p-3 bg-gray-700 rounded">
+          <span class="text-white">Player 1:</span>
+          <span class="text-green-400 font-medium">You</span>
+        </div>
+
+        <!-- Other Players with Human/Bot selection -->
+        <div
+          *ngFor="let i of getPlayerSlots(); let idx = index"
+          class="flex items-center justify-between p-3 bg-gray-700 rounded"
+        >
+          <span class="text-white">Player {{ i + 1 }}:</span>
+          <div class="flex gap-1 bg-gray-600 rounded p-1">
+            <button
+              mat-raised-button
+              [color]="playerTypes[idx] === 'human' ? 'primary' : 'basic'"
+              (click)="setPlayerType(idx, 'human')"
+              class="text-xs px-3 py-1 min-w-0"
+            >
+              👤 Human
+            </button>
+            <button
+              mat-raised-button
+              [color]="playerTypes[idx] === 'bot' ? 'accent' : 'basic'"
+              (click)="setPlayerType(idx, 'bot')"
+              class="text-xs px-3 py-1 min-w-0"
+            >
+              🤖 Bot
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bot Difficulty (only show if any bots selected) -->
+      <div class="flex flex-col gap-2" *ngIf="hasAnyBots()">
+        <label class="text-white font-medium">Bot Difficulty:</label>
+        <div class="flex gap-2 justify-center">
+          <button
+            mat-raised-button
+            [color]="botDifficulty === 'easy' ? 'accent' : 'basic'"
+            (click)="setBotDifficulty('easy')"
+            class="text-sm"
+          >
+            Easy
+          </button>
+          <button
+            mat-raised-button
+            [color]="botDifficulty === 'medium' ? 'accent' : 'basic'"
+            (click)="setBotDifficulty('medium')"
+            class="text-sm"
+          >
+            Medium
+          </button>
+          <button
+            mat-raised-button
+            [color]="botDifficulty === 'hard' ? 'accent' : 'basic'"
+            (click)="setBotDifficulty('hard')"
+            class="text-sm"
+          >
+            Hard
+          </button>
+        </div>
+      </div>
+
+      <!-- Create Room Button -->
       <button
         mat-raised-button
         color="primary"
         (click)="game.createRoom(playerName.value || 'Player')"
         [disabled]="game.joinInProgress || !playerName.value?.trim()"
-        data-cy="create-btn"
+        data-cy="create-game-btn"
+        class="text-lg py-3"
       >
-        Create Room
+        🎮 Create Room
       </button>
 
-      <span class="strike-block"> or </span>
+      <!-- Game Summary -->
+      <div class="text-center text-sm text-gray-300">
+        {{ getGameSummary() }}
+      </div>
 
-      <mat-form-field class="-mb-4" [hideRequiredMarker]="true">
-        <mat-label>Room ID</mat-label>
-        <input
-          matInput
-          data-cy="roomId-input"
-          [formControl]="roomId"
-          (keyup.enter)="
-            roomId.invalid ||
-              !playerName.value?.trim() ||
-              game.joinRoom(roomId.value!, playerName.value!)
-          "
-        />
-      </mat-form-field>
+      <!-- Join Existing Game (unchanged) -->
+      <div class="flex flex-col gap-4 p-6 bg-gray-800 rounded-lg">
+        <h3 class="text-center text-xl font-semibold text-white">
+          Join Existing Game
+        </h3>
 
-      <div
-        [matTooltip]="getJoinButtonTooltip()"
-        [matTooltipDisabled]="roomId.valid && playerName.value?.trim()"
-      >
-        <button
-          mat-raised-button
-          color="primary"
-          class="w-full"
-          (click)="game.joinRoom(roomId.value!, playerName.value!)"
-          [disabled]="
-            roomId.invalid || game.joinInProgress || !playerName.value?.trim()
-          "
-          data-cy="join-btn"
+        <mat-form-field [hideRequiredMarker]="true">
+          <mat-label>Room ID</mat-label>
+          <input
+            matInput
+            data-cy="roomId-input"
+            [formControl]="roomId"
+            (keyup.enter)="
+              roomId.invalid ||
+                !playerName.value?.trim() ||
+                game.joinRoom(roomId.value!, playerName.value!)
+            "
+          />
+        </mat-form-field>
+
+        <div
+          [matTooltip]="getJoinButtonTooltip()"
+          [matTooltipDisabled]="roomId.valid && playerName.value?.trim()"
         >
-          Join Room
-        </button>
+          <button
+            mat-raised-button
+            color="primary"
+            class="w-full"
+            (click)="game.joinRoom(roomId.value!, playerName.value!)"
+            [disabled]="
+              roomId.invalid || game.joinInProgress || !playerName.value?.trim()
+            "
+            data-cy="join-btn"
+          >
+            Join Room
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <footer>
-    <a
-      class="text-neutral-400"
-      href="https://github.com/bkoupal/swick-card-game"
-      >View the source on GitHub</a
-    >
-  </footer>
+    <footer>
+      <a
+        class="text-neutral-400"
+        href="https://github.com/bkoupal/swick-card-game"
+        >View the source on GitHub</a
+      >
+    </footer>
+  </div>
 </div>
