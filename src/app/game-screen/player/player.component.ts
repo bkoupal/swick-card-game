@@ -70,8 +70,26 @@ export class PlayerComponent {
    */
   shouldShowCards(): boolean {
     // Players can only see their own cards
-    // Dealer is treated exactly like any other player
-    return this.clientIsPlayer;
+    if (!this.clientIsPlayer) return false;
+
+    // If this is not the dealer, always show cards
+    if (!this.isDealer) return true;
+
+    // For dealers, hide cards during specific phases until their turn
+    if (this.gameState?.roundState === 'knock-in') {
+      // Show cards if dealer has made their knock decision
+      if (this.player?.hasKnockDecision) return true;
+
+      // Show cards if it's currently dealer's turn to knock
+      if (this.gameState?.currentKnockPlayerId === this.player?.sessionId)
+        return true;
+
+      // Otherwise hide cards during knock-in phase
+      return false;
+    }
+
+    // Show cards during all other phases (dealing, discard-draw, turns, etc.)
+    return true;
   }
 
   /**
