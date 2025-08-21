@@ -20,7 +20,11 @@
   </div>
 
   <!-- SWICK Ante Display (Non-Dealers) -->
-  <div *ngIf="!readyMenuHidden && !isDealer" class="grid gap-1">
+  <!-- Only show this AFTER dealer has set ante -->
+  <div
+    *ngIf="!readyMenuHidden && !isDealer && dealerHasSetAnte"
+    class="grid gap-1"
+  >
     <span class="text-center table-font">Ante Set by Dealer</span>
     <div class="text-center bg-gray-700 rounded px-3 py-2">
       <div class="text-lg font-bold">{{ currentBet }}¢</div>
@@ -92,7 +96,7 @@
       <button style="flex-grow: 100" (click)="readyChange.emit(!ready)">
         {{ ready ? "Not ready" : "Ready" }}
       </button>
-      <div class="h-9">
+      <!-- div class="h-9">
         <mat-checkbox
           class="-mt-2.5 mr-4"
           [checked]="autoReady"
@@ -100,7 +104,7 @@
           matTooltip="Automatically sets player as ready after every round"
           >Auto Ready</mat-checkbox
         >
-      </div>
+      </div -->
     </div>
   </div>
 
