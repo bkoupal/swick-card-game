@@ -220,6 +220,10 @@ export class Player extends Schema {
   @type('boolean') wentSet: boolean = false; // Whether player went set this round
   @type('number') setAmount: number = 0; // Amount player owes for going set
   @type('string') setType: string = ''; // 'single' or 'double' for dealers
+
+  // Bot Handling
+  @type('boolean') isBot: boolean = false;
+  @type('string') botDifficulty: string = '';
 }
 
 export class GameState extends Schema {
