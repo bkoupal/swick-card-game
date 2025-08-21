@@ -6,6 +6,13 @@ import * as Colyseus from 'colyseus.js';
 import { Subject } from 'rxjs';
 import { environment } from '../environments/environment';
 
+export interface GameSetup {
+  totalPlayers: number;
+  playerTypes: ('human' | 'bot')[];
+  botDifficulty: 'easy' | 'medium' | 'hard';
+  playerName: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -44,6 +51,17 @@ export class GameService {
 
   constructor(private router: Router) {
     this.client = new Colyseus.Client(environment.gameServer);
+  }
+
+  public createRoomWithBots(gameSetup: GameSetup) {
+    return this.updateRoom(
+      () =>
+        this.client.create('gameRoom', {
+          playerName: gameSetup.playerName,
+          gameSetup: gameSetup,
+        }),
+      true
+    );
   }
 
   public createRoom(playerName: string = 'Player') {

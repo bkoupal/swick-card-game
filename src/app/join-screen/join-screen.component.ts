@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import gameConfig from 'backend/src/game.config';
 import { GameService } from '../game.service';
+import { GameSetup } from '../game.service';
 
 @Component({
   selector: 'app-join-screen',
@@ -123,6 +124,30 @@ export class JoinScreenComponent {
       return `${humanCount} humans + ${botCount} ${this.botDifficulty} bot${
         botCount > 1 ? 's' : ''
       }`;
+    }
+  }
+
+  createGameWithBots(): void {
+    if (!this.playerName.value?.trim()) {
+      return;
+    }
+
+    const gameSetup: GameSetup = {
+      totalPlayers: this.totalPlayers,
+      playerTypes: this.playerTypes,
+      botDifficulty: this.botDifficulty,
+      playerName: this.playerName.value.trim(),
+    };
+
+    // Check if any bots are selected
+    const hasBots = this.hasAnyBots();
+
+    if (hasBots) {
+      // Create room with bot configuration
+      this.game.createRoomWithBots(gameSetup);
+    } else {
+      // Create regular room (no bots)
+      this.game.createRoom(gameSetup.playerName);
     }
   }
 }

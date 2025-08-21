@@ -132,7 +132,7 @@
       <button
         mat-raised-button
         color="primary"
-        (click)="game.createRoom(playerName.value || 'Player')"
+        (click)="createGameWithBots()"
         [disabled]="game.joinInProgress || !playerName.value?.trim()"
         data-cy="create-game-btn"
         class="text-lg py-3"

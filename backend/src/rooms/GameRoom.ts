@@ -26,6 +26,13 @@ interface SpecialHand {
   description: string;
 }
 
+interface GameSetup {
+  totalPlayers: number;
+  playerTypes: ('human' | 'bot')[];
+  botDifficulty: 'easy' | 'medium' | 'hard';
+  playerName: string;
+}
+
 export class GameRoom extends Room<GameState> {
   /** Current timeout skip reference */
   public inactivityTimeoutRef?: Delayed;
@@ -37,6 +44,9 @@ export class GameRoom extends Room<GameState> {
 
   public autoDispose = false;
   private LOBBY_CHANNEL = 'GameRoom';
+
+  private gameSetup?: GameSetup;
+  private botPlayers: Set<string> = new Set(); // Track bot player IDs
 
   private log(msg: string, client?: Client | string) {
     if (process.env.ROOM_LOG_DISABLE == 'true') return;
@@ -571,10 +581,20 @@ export class GameRoom extends Room<GameState> {
   onJoin(client: Client, options: any) {
     this.log(`Join`, client);
 
+    // Store game setup from room creator
+    if (options?.gameSetup && !this.gameSetup) {
+      this.gameSetup = options.gameSetup;
+      this.log(
+        `Game setup: ${
+          this.gameSetup.totalPlayers
+        } players, ${this.getBotCount()} bots`
+      );
+    }
+
     // Use provided player name or generate random one
     let playerName: string;
     if (options?.playerName && options.playerName.trim()) {
-      playerName = options.playerName.trim().substring(0, 20); // Limit to 20 characters
+      playerName = options.playerName.trim().substring(0, 20);
     } else {
       playerName = this.generateRandomName();
     }
@@ -590,8 +610,84 @@ export class GameRoom extends Room<GameState> {
 
     this.log(`Player joined as: ${playerName}`);
 
+    // Create bots if this is the first human player and we have game setup
+    if (this.state.players.size === 1 && this.gameSetup) {
+      this.createBots();
+    }
+
     this.triggerRoomDeleteCheck();
     this.triggerNewRoundCheck();
+  }
+
+  private createBots(): void {
+    if (!this.gameSetup) return;
+
+    const botCount = this.getBotCount();
+    this.log(
+      `Creating ${botCount} bots with ${this.gameSetup.botDifficulty} difficulty`
+    );
+
+    for (let i = 0; i < botCount; i++) {
+      this.createBot(i + 1);
+    }
+  }
+
+  private createBot(botNumber: number): void {
+    if (!this.gameSetup) return;
+
+    // Generate a unique bot session ID
+    const botSessionId = `bot_${botNumber}_${Date.now()}`;
+
+    // Generate bot name based on difficulty
+    const botName = this.generateBotName(
+      botNumber,
+      this.gameSetup.botDifficulty
+    );
+
+    // Create bot player
+    const botPlayer = new Player({
+      sessionId: botSessionId,
+      displayName: botName,
+      admin: false,
+    });
+
+    // Mark as bot
+    botPlayer.isBot = true;
+    botPlayer.botDifficulty = this.gameSetup.botDifficulty;
+
+    this.state.players.set(botSessionId, botPlayer);
+    this.botPlayers.add(botSessionId);
+
+    this.log(`Created bot: ${botName} (${this.gameSetup.botDifficulty})`);
+  }
+
+  private getBotCount(): number {
+    if (!this.gameSetup) return 0;
+    return this.gameSetup.playerTypes.filter((type) => type === 'bot').length;
+  }
+
+  private generateBotName(botNumber: number, difficulty: string): string {
+    const easyNames = ['SimpleBot', 'BasicBot', 'NewbieBot', 'LearnerBot'];
+    const mediumNames = ['CleverBot', 'SmartBot', 'TacticBot', 'StrategyBot'];
+    const hardNames = ['MasterBot', 'ProBot', 'ExpertBot', 'GeniusBot'];
+
+    let namePool: string[];
+    switch (difficulty) {
+      case 'easy':
+        namePool = easyNames;
+        break;
+      case 'medium':
+        namePool = mediumNames;
+        break;
+      case 'hard':
+        namePool = hardNames;
+        break;
+      default:
+        namePool = easyNames;
+    }
+
+    const baseName = namePool[Math.floor(Math.random() * namePool.length)];
+    return `${baseName}${botNumber}`;
   }
 
   /**
@@ -630,6 +726,13 @@ export class GameRoom extends Room<GameState> {
 
   async onLeave(client: Client, consented: boolean) {
     this.log(`Leave`, client);
+
+    // Handle bot cleanup differently
+    if (this.botPlayers.has(client.sessionId)) {
+      this.botPlayers.delete(client.sessionId);
+      this.deletePlayer(client.sessionId);
+      return;
+    }
 
     const player = this.state.players.get(client.sessionId);
     player.disconnected = true;
