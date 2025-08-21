@@ -199,6 +199,33 @@ export class GameRoom extends Room<GameState> {
         ?.leave(Protocol.WS_CLOSE_CONSENTED);
     });
 
+    this.onMessage('changeName', (client, newName: string) => {
+      // Only allow name changes during idle state
+      if (
+        this.state.roundState !== 'idle' ||
+        !newName ||
+        typeof newName !== 'string'
+      ) {
+        this.log(`Name change rejected - invalid state or name`, client);
+        return;
+      }
+
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+
+      const sanitizedName = newName.trim().substring(0, 20);
+
+      if (sanitizedName && sanitizedName !== player.displayName) {
+        this.log(
+          `${player.displayName} changed name to ${sanitizedName}`,
+          client
+        );
+        player.displayName = sanitizedName;
+      } else {
+        this.log(`Name change rejected - same name or empty`, client);
+      }
+    });
+
     this.onMessage('keepTrump', (client, keep: boolean) => {
       // Only dealer can make trump decision during trump-selection phase
       if (
@@ -541,20 +568,64 @@ export class GameRoom extends Room<GameState> {
     return true;
   }
 
-  onJoin(client: Client) {
+  onJoin(client: Client, options: any) {
     this.log(`Join`, client);
+
+    // Use provided player name or generate random one
+    let playerName: string;
+    if (options?.playerName && options.playerName.trim()) {
+      playerName = options.playerName.trim().substring(0, 20); // Limit to 20 characters
+    } else {
+      playerName = this.generateRandomName();
+    }
 
     this.state.players.set(
       client.sessionId,
       new Player({
         sessionId: client.sessionId,
-        displayName: generateUserName(),
+        displayName: playerName,
         admin: this.state.players.size == 0,
       })
     );
 
+    this.log(`Player joined as: ${playerName}`);
+
     this.triggerRoomDeleteCheck();
     this.triggerNewRoundCheck();
+  }
+
+  /**
+   * Generates a random player name for players who don't provide one
+   */
+  private generateRandomName(): string {
+    const randomNames = [
+      'CardShark',
+      'LuckyAce',
+      'TrumpMaster',
+      'SwiftPlayer',
+      'DealerKing',
+      'ClubCrusher',
+      'HeartBreaker',
+      'SpadeSeeker',
+      'DiamondDave',
+      'PokerFace',
+      'RoyalFlush',
+      'WildCard',
+      'HighRoller',
+      'BluffMaster',
+      'AceHunter',
+      'CardCounting',
+      'AllInPlayer',
+      'FastDeal',
+      'TrickTaker',
+      'SwiftSwick',
+    ];
+
+    const randomIndex = Math.floor(Math.random() * randomNames.length);
+    const baseName = randomNames[randomIndex];
+    const randomNumber = Math.floor(Math.random() * 999) + 1;
+
+    return `${baseName}${randomNumber}`;
   }
 
   async onLeave(client: Client, consented: boolean) {

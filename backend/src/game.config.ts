@@ -16,8 +16,8 @@ export default {
 
   // SWICK betting (using cents as base unit)
   minBet: 3, // Minimum ante is 3 cents per person
-  maxBet: 1000, // Maximum bet
-  initialPlayerMoney: 10000, // Starting with 100 dollars (10000 cents)
+  maxBet: 99, // Maximum bet
+  initialPlayerMoney: 4000, // Starting with 100 dollars (10000 cents)
   initialPlayerBet: 3, // Default ante of 3 cents
 
   // Websocket Code when player is disconnected by server

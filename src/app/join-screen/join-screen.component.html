@@ -8,49 +8,85 @@
   </header>
 
   <div class="flex flex-col gap-8">
-    <button
-      mat-raised-button
-      color="primary"
-      (click)="game.createRoom()"
-      [disabled]="game.joinInProgress"
-      data-cy="create-btn"
-    >
-      Create room
-    </button>
+    <!-- Player Name Selection -->
+    <div class="flex flex-col gap-4">
+      <h3 class="text-center text-xl font-semibold">Choose Your Name</h3>
 
-    <span class="strike-block"> or </span>
+      <mat-form-field [hideRequiredMarker]="true">
+        <mat-label>Player Name</mat-label>
+        <input
+          matInput
+          data-cy="playerName-input"
+          [formControl]="playerName"
+          maxlength="20"
+          placeholder="Enter your name"
+        />
+        <mat-hint>{{ playerName.value?.length || 0 }}/20</mat-hint>
+      </mat-form-field>
 
-    <mat-form-field class="-mb-4" [hideRequiredMarker]="true">
-      <mat-label>Room ID</mat-label>
-      <input
-        matInput
-        data-cy="roomId-input"
-        [formControl]="roomId"
-        (keyup.enter)="roomId.invalid || game.joinRoom(roomId.value!)"
-      />
-    </mat-form-field>
+      <button
+        mat-raised-button
+        color="accent"
+        (click)="generateRandomName()"
+        [disabled]="game.joinInProgress"
+        class="text-sm"
+      >
+        🎲 Generate Random Name
+      </button>
+    </div>
 
-    <div
-      [matTooltip]="joinButtonInvalidTooltip"
-      [matTooltipDisabled]="!roomId.invalid"
-    >
+    <!-- Room Actions -->
+    <div class="flex flex-col gap-4">
       <button
         mat-raised-button
         color="primary"
-        class="w-full"
-        (click)="game.joinRoom(roomId.value!)"
-        [disabled]="roomId.invalid || game.joinInProgress"
-        data-cy="join-btn"
+        (click)="game.createRoom(playerName.value || 'Player')"
+        [disabled]="game.joinInProgress || !playerName.value?.trim()"
+        data-cy="create-btn"
       >
-        Join room
+        Create Room
       </button>
+
+      <span class="strike-block"> or </span>
+
+      <mat-form-field class="-mb-4" [hideRequiredMarker]="true">
+        <mat-label>Room ID</mat-label>
+        <input
+          matInput
+          data-cy="roomId-input"
+          [formControl]="roomId"
+          (keyup.enter)="
+            roomId.invalid ||
+              !playerName.value?.trim() ||
+              game.joinRoom(roomId.value!, playerName.value!)
+          "
+        />
+      </mat-form-field>
+
+      <div
+        [matTooltip]="getJoinButtonTooltip()"
+        [matTooltipDisabled]="roomId.valid && playerName.value?.trim()"
+      >
+        <button
+          mat-raised-button
+          color="primary"
+          class="w-full"
+          (click)="game.joinRoom(roomId.value!, playerName.value!)"
+          [disabled]="
+            roomId.invalid || game.joinInProgress || !playerName.value?.trim()
+          "
+          data-cy="join-btn"
+        >
+          Join Room
+        </button>
+      </div>
     </div>
   </div>
 
   <footer>
     <a
       class="text-neutral-400"
-      href="https://github.com/stopnoanime/swick-card-game"
+      href="https://github.com/bkoupal/swick-card-game"
       >View the source on GitHub</a
     >
   </footer>

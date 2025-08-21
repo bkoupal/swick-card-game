@@ -36,6 +36,17 @@
       <mat-icon>casino</mat-icon>
     </button>
 
+    <button
+      *ngIf="canChangeName()"
+      mat-mini-fab
+      color="accent"
+      matTooltip="Change your name"
+      (click)="openNameChangeDialog()"
+      data-cy="change-name-btn"
+    >
+      <mat-icon>edit</mat-icon>
+    </button>
+
     <!-- Enhanced pot display with going set information -->
     <div *ngIf="game.room!.state.potValue > 0" class="table-font mt-1">
       <!--div class="flex flex-col items-center" -->
@@ -134,12 +145,22 @@
         </div>
       </div>
 
-      <!-- Show trump suit once selected -->
+      <!-- Show visual trump card once selected -->
       <div
-        *ngIf="game.room!.state.trumpSuit && !game.trumpSelectionPhase"
+        *ngIf="
+          game.room!.state.trumpSuit &&
+          game.room!.state.trumpCard &&
+          !game.trumpSelectionPhase
+        "
         class="table-font mt-2"
       >
-        Trump: {{ game.room!.state.trumpSuit }}
+        <div class="font-bold mb-2">Trump Card:</div>
+        <div class="flex justify-center">
+          <app-card
+            [card]="game.room!.state.trumpCard"
+            class="scale-75"
+          ></app-card>
+        </div>
       </div>
       <div *ngIf="game.room!.state.potValue > 0" class="table-font mt-1">
         Pot: {{ game.room!.state.potValue }}¢
