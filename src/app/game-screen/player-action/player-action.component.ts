@@ -41,7 +41,6 @@ export class PlayerActionsComponent {
 
   gameConfig = gameConfig;
 
-  // Then simplify the getter:
   get isWaitingForAnteSet(): boolean {
     if (this.isDealer) return false;
     return !this.dealerHasSetAnte;

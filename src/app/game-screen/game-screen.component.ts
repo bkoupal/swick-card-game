@@ -104,6 +104,10 @@ export class GameScreenComponent {
     );
   }
 
+  get dealerHasSetAnte(): boolean {
+    return (this.game.room?.state as any)?.dealerHasSetAnte || false;
+  }
+
   // GOING SET METHODS
 
   /**
