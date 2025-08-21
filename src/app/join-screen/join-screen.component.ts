@@ -21,6 +21,10 @@ export class JoinScreenComponent {
     Validators.maxLength(20),
   ]);
 
+  totalPlayers = 3;
+  playerTypes: ('human' | 'bot')[] = ['human', 'human']; // For players 3-6
+  botDifficulty: 'easy' | 'medium' | 'hard' = 'easy';
+
   private randomNames = [
     'CardShark',
     'LuckyAce',
@@ -65,5 +69,60 @@ export class JoinScreenComponent {
       return 'Please enter a player name.';
     }
     return '';
+  }
+
+  getPlayerSlots(): number[] {
+    // Return array for players 2 through totalPlayers
+    return Array.from({ length: this.totalPlayers - 1 }, (_, i) => i + 1);
+  }
+
+  setTotalPlayers(count: number): void {
+    this.totalPlayers = count;
+
+    // Adjust playerTypes array to match new total
+    const slotsNeeded = count - 1; // Player 1 is always human
+
+    if (this.playerTypes.length < slotsNeeded) {
+      // Add more slots, default to human
+      while (this.playerTypes.length < slotsNeeded) {
+        this.playerTypes.push('human');
+      }
+    } else if (this.playerTypes.length > slotsNeeded) {
+      // Remove extra slots
+      this.playerTypes = this.playerTypes.slice(0, slotsNeeded);
+    }
+  }
+
+  // NEW: Add these Phase 2 methods
+  setPlayerType(slotIndex: number, type: 'human' | 'bot'): void {
+    if (slotIndex >= 0 && slotIndex < this.playerTypes.length) {
+      this.playerTypes[slotIndex] = type;
+    }
+  }
+
+  setBotDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
+    this.botDifficulty = difficulty;
+  }
+
+  hasAnyBots(): boolean {
+    return this.playerTypes.includes('bot');
+  }
+
+  getGameSummary(): string {
+    const humanCount =
+      this.playerTypes.filter((type) => type === 'human').length + 1; // +1 for player 1
+    const botCount = this.playerTypes.filter((type) => type === 'bot').length;
+
+    if (botCount === 0) {
+      return `${humanCount} human players`;
+    } else if (humanCount === 1) {
+      return `You vs ${botCount} ${this.botDifficulty} bot${
+        botCount > 1 ? 's' : ''
+      }`;
+    } else {
+      return `${humanCount} humans + ${botCount} ${this.botDifficulty} bot${
+        botCount > 1 ? 's' : ''
+      }`;
+    }
   }
 }
