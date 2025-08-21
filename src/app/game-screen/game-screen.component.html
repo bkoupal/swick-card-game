@@ -130,6 +130,7 @@
 
     <div
       class="row-start-1 col-start-1 z-0 text-amber-50 font-serif text-center"
+      style="margin-top: -100px"
     >
       <span class="table-font-xl">Swick</span><br />
       <span class="table-font-lg">Knock In, Play Bold, Don't Go Set</span>
@@ -139,10 +140,10 @@
         *ngIf="game.room!.state.trumpCard && game.trumpSelectionPhase"
         class="table-font mt-2"
       >
-        <div class="font-bold mb-2">Trump Card:</div>
         <div class="flex justify-center">
           <app-card [card]="game.room!.state.trumpCard"></app-card>
         </div>
+        <div class="font-bold mb-2" style="color: yellow">Trump Card</div>
       </div>
 
       <!-- Show visual trump card once selected -->
@@ -154,16 +155,13 @@
         "
         class="table-font mt-2"
       >
-        <div class="font-bold mb-2">Trump Card:</div>
         <div class="flex justify-center">
           <app-card
             [card]="game.room!.state.trumpCard"
             class="scale-75"
           ></app-card>
         </div>
-      </div>
-      <div *ngIf="game.room!.state.potValue > 0" class="table-font mt-1">
-        Pot: {{ game.room!.state.potValue }}¢
+        <div class="font-bold mb-2" style="color: yellow">Trump Card</div>
       </div>
     </div>
 
