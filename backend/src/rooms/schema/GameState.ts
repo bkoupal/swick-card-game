@@ -263,6 +263,7 @@ export class GameState extends Schema {
   @type('boolean') dealerKeptTrump: boolean = false; // Whether dealer kept the trump card
   @type('string') dealerTrumpValue: string = ''; // Value of trump card dealer kept (for set requirements)
   @type('number') nextRoundPotBonus: number = 0; // Extra pot from players who went set
+  @type('boolean') dealerHasSetAnte: boolean = false;
 }
 
 export type roundOutcome = 'bust' | 'win' | 'lose' | 'draw' | '';
