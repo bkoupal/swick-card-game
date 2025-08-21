@@ -94,8 +94,7 @@ export class GameRoom extends Room<GameState> {
 
       // Prevent non-dealers from becoming ready if dealer hasn't set ante yet
       if (state && client.sessionId !== this.state.dealerId) {
-        const dealer = this.state.players.get(this.state.dealerId);
-        if (dealer && dealer.bet === gameConfig.initialPlayerBet) {
+        if (!this.state.dealerHasSetAnte) {
           this.log(
             `${player.displayName} cannot ready - dealer must set ante first`
           );
@@ -125,26 +124,33 @@ export class GameRoom extends Room<GameState> {
         !Number.isInteger(newBet)
       )
         return;
+
       // SWICK ante validation - must be 3, 6, 9, 12, or 15
       const allowedAntes = [3, 6, 9, 12, 15];
       if (!allowedAntes.includes(newBet)) {
-        this.log(`Invalid ante amount: ${newBet}. Must be 3, 6, 9, 12, or 15.`);
+        this.log(`Invalid ante amount: ${newBet}`);
         return;
       }
-      // Only dealer can set ante
+
+      const player = this.state.players.get(client.sessionId);
+
+      // Only dealers can set ante for everyone
       if (client.sessionId !== this.state.dealerId) {
-        this.log(`Non-dealer ${client.sessionId} tried to set ante`);
+        this.log(`Non-dealer ${player.displayName} attempted to set ante`);
         return;
       }
 
-      this.log(`Dealer sets ante: ${newBet}¢`, client);
+      this.log(`Dealer ${player.displayName} setting ante to ${newBet}¢`);
 
-      // Set the ante for ALL players so the UI updates correctly
-      for (const player of this.state.players.values()) {
-        player.bet = newBet;
+      // Set ante for all players
+      for (const p of this.state.players.values()) {
+        p.bet = newBet;
       }
 
-      this.log(`Ante ${newBet}¢ applied to all players`);
+      // Mark that dealer has made ante decision
+      this.state.dealerHasSetAnte = true;
+
+      this.log(`Ante set to ${newBet}¢ for all players`);
     });
 
     this.onMessage('playCard', (client, cardIndex: number) => {
@@ -1133,6 +1139,9 @@ export class GameRoom extends Room<GameState> {
     this.state.trumpSuit = '';
     this.state.trumpCard = undefined;
     this.state.potValue = 0;
+
+    // Clear ante data
+    this.state.dealerHasSetAnte = false;
 
     // Reset all players for next hand
     for (const player of this.state.players.values()) {
