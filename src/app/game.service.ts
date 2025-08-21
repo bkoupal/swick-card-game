@@ -46,12 +46,24 @@ export class GameService {
     this.client = new Colyseus.Client(environment.gameServer);
   }
 
-  public createRoom() {
-    return this.updateRoom(() => this.client.create('gameRoom'), true);
+  public createRoom(playerName: string = 'Player') {
+    return this.updateRoom(
+      () =>
+        this.client.create('gameRoom', {
+          playerName: playerName,
+        }),
+      true
+    );
   }
 
-  public joinRoom(id: string) {
-    return this.updateRoom(() => this.client.joinById(id.toUpperCase()), true);
+  public joinRoom(id: string, playerName: string = 'Player') {
+    return this.updateRoom(
+      () =>
+        this.client.joinById(id.toUpperCase(), {
+          playerName: playerName,
+        }),
+      true
+    );
   }
 
   /**
@@ -151,6 +163,10 @@ export class GameService {
 
   public get knockInPhase() {
     return this._room?.state.roundState === 'knock-in';
+  }
+
+  public changeName(newName: string) {
+    this.room?.send('changeName', newName);
   }
 
   /**

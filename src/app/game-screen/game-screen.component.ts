@@ -46,6 +46,30 @@ export class GameScreenComponent {
     return `${trumpCard.value.value} of ${trumpCard.value.suit}`;
   }
 
+  /**
+   * Determines if the player can change their name
+   * Only allowed during idle state (not during a round)
+   */
+  canChangeName(): boolean {
+    return this.game.room?.state.roundState === 'idle' && !!this.game.player;
+  }
+
+  /**
+   * Opens a prompt for the player to change their name
+   */
+  openNameChangeDialog(): void {
+    const currentName = this.game.player?.displayName || '';
+    const newName = prompt(
+      'Enter your new name (max 20 characters):',
+      currentName
+    );
+
+    if (newName && newName.trim() && newName.trim() !== currentName) {
+      const sanitizedName = newName.trim().substring(0, 20);
+      this.game.changeName(sanitizedName);
+    }
+  }
+
   getPlayerName(playerId: string): string {
     const player = this.game.room?.state.players.get(playerId);
     return player?.displayName || 'Unknown';
