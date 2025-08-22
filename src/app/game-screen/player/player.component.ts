@@ -46,23 +46,58 @@ export class PlayerComponent {
   };
 
   onCardClick(cardIndex: number) {
-    if (this.clientIsPlayer && this.isPlayerTurn) {
+    if (!this.clientIsPlayer) {
+      // Not the current client's player, ignore clicks
+      return;
+    }
+
+    if (this.isDiscardDrawPhase()) {
+      // During discard/draw phase, check if this player can discard
+      if (this.isCurrentDiscardPlayer()) {
+        this.selectCard.emit(cardIndex);
+      }
+    } else if (this.isPlayerTurn) {
+      // During trick-taking phase, check if it's this player's turn
       this.playCard.emit(cardIndex);
-    } else if (this.clientIsPlayer && this.isDiscardDrawPhase()) {
-      // During discard/draw phase, clicking selects/deselects cards
-      this.selectCard.emit(cardIndex);
     }
   }
 
   canPlayCard(card: Card): boolean {
+    if (!this.clientIsPlayer) {
+      return false;
+    }
+
     if (this.isDiscardDrawPhase()) {
-      // During discard/draw, all cards are clickable for selection
-      return this.clientIsPlayer && this.isCurrentDiscardPlayer();
+      // During discard/draw, cards are clickable if it's this player's turn to discard
+      return this.isCurrentDiscardPlayer();
     }
 
     // During trick-taking, allow any card when it's the player's turn
     // The backend will validate the actual SWICK rules
-    return this.clientIsPlayer && this.isPlayerTurn;
+    return this.isPlayerTurn;
+  }
+
+  private isDiscardDrawPhase(): boolean {
+    return this.gameState?.roundState === 'discard-draw';
+  }
+
+  private isCurrentDiscardPlayer(): boolean {
+    return this.gameState?.currentDiscardPlayerId === this.player?.sessionId;
+  }
+
+  // Add debugging method to help troubleshoot (remove after fixing)
+  onCardClickDebug(cardIndex: number) {
+    console.log('Card click debug:', {
+      clientIsPlayer: this.clientIsPlayer,
+      isDiscardDrawPhase: this.isDiscardDrawPhase(),
+      isCurrentDiscardPlayer: this.isCurrentDiscardPlayer(),
+      isPlayerTurn: this.isPlayerTurn,
+      currentDiscardPlayerId: this.gameState?.currentDiscardPlayerId,
+      playerSessionId: this.player?.sessionId,
+      roundState: this.gameState?.roundState,
+    });
+
+    this.onCardClick(cardIndex);
   }
 
   /**
@@ -100,14 +135,6 @@ export class PlayerComponent {
     const hiddenCard = Object.assign({}, originalCard);
     hiddenCard.visible = false;
     return hiddenCard;
-  }
-
-  private isDiscardDrawPhase(): boolean {
-    return this.gameState?.roundState === 'discard-draw';
-  }
-
-  private isCurrentDiscardPlayer(): boolean {
-    return this.gameState?.currentDiscardPlayerId === this.player?.sessionId;
   }
 
   /**

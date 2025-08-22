@@ -891,7 +891,15 @@ export class GameRoom extends Room<GameState> {
       if (player.ready) {
         player.knockedIn = false;
         player.hasKnockDecision = false;
+        player.hasDiscardDecision = false;
         player.roundOutcome = '';
+        player.dealerCompletedNormalDiscard = false;
+
+        // Clear card selections
+        player.selectedCards.clear();
+        for (const card of player.hand.cards) {
+          card.selected = false;
+        }
 
         // RESET GOING SET TRACKING
         player.tricksWon = 0;
@@ -901,26 +909,13 @@ export class GameRoom extends Room<GameState> {
       }
     }
 
-    // Determine dealer (rotate each hand based on roundIteratorOffset)
-    // const allPlayers = [...this.state.players.values()].filter((p) => p.ready);
-    // const dealerIndex = this.roundIteratorOffset % allPlayers.length;
-    // this.state.dealerId = allPlayers[dealerIndex].sessionId;
-
+    // Dealer is already assigned in triggerNewRoundCheck()
     this.log(
       `Dealer is: ${this.state.players.get(this.state.dealerId).displayName}`
     );
     this.log(
       `Deck shuffled. Cards remaining: ${this.state.deck.remainingCards}`
     );
-
-    // Reset player states for new hand
-    for (const player of this.state.players.values()) {
-      if (player.ready) {
-        player.knockedIn = false;
-        player.hasKnockDecision = false;
-        player.roundOutcome = '';
-      }
-    }
 
     // REPLACE the ante collection with this SWICK-correct logic:
     for (const playerId of this.makeRoundIterator()) {
@@ -1332,6 +1327,12 @@ export class GameRoom extends Room<GameState> {
       player.hasKnockDecision = false;
       player.hasDiscardDecision = false;
       player.dealerCompletedNormalDiscard = false;
+
+      // Clear card selections
+      player.selectedCards.clear();
+      for (const card of player.hand.cards) {
+        card.selected = false;
+      }
 
       // Remove players that are still disconnected
       if (player.disconnected) this.deletePlayer(player.sessionId);
