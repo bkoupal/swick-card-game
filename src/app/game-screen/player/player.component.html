@@ -17,8 +17,6 @@
     >
   </div>
 
-  <!-- Remove the entire dealer indicator div - we'll use just the background color -->
-
   <div class="flex flex-col col-start-1 row-start-1">
     <span
       class="table-font text-center whitespace-nowrap"
@@ -26,6 +24,16 @@
       *ngIf="player"
     >
       {{ type == "dealer" ? "Dealer" : player.displayName || "No Player" }}
+
+      <!-- BOT INDICATOR -->
+      <span
+        *ngIf="player.isBot"
+        class="text-blue-400 ml-1"
+        [matTooltip]="getBotTooltip()"
+        matTooltipPosition="above"
+      >
+        🤖
+      </span>
 
       <!-- Going Set Indicators -->
       <span
@@ -53,11 +61,20 @@
       </span>
     </span>
 
+    <!-- ADD DEALER LABEL BELOW NAME -->
+    <div
+      *ngIf="isDealer && gameState?.roundState !== 'idle'"
+      class="table-font text-xs bg-red-600 text-white px-2 py-1 rounded-full text-center font-bold mt-1"
+    >
+      DEALER
+    </div>
+
     <app-money-counter
       *ngIf="player"
       [money]="player.money"
     ></app-money-counter>
 
+    <!-- The progress bar is for turn timeout - shows time remaining for player's turn -->
     <app-timestamp-progress-bar
       *ngIf="player"
       class="scale-y-150"
@@ -86,6 +103,7 @@
   ></app-hand-score>
 
   <div class="grid place-items-center">
+    <!-- Round outcome popup -->
     <div
       *ngIf="player?.roundOutcome || dealerHand?.isBusted"
       class="z-10 table-font pill-popup col-start-1 row-start-1 whitespace-nowrap text-center"
@@ -100,7 +118,9 @@
       }}
     </div>
 
+    <!-- Cards display - HIDE COMPLETELY if player passed -->
     <div
+      *ngIf="!hasPlayerPassed()"
       class="flex col-start-1 row-start-1 transition-opacity duration-1000"
       [class.opacity-80]="player?.roundOutcome || dealerHand?.isBusted"
     >
@@ -115,8 +135,25 @@
       </div>
       <div style="width: calc(var(--playing-card-width) * 0.5)"></div>
     </div>
+
+    <!-- PASSED INDICATOR - Shows when cards are hidden -->
+    <div
+      *ngIf="hasPlayerPassed()"
+      class="col-start-1 row-start-1 flex items-center justify-center"
+      style="
+        height: calc(var(--playing-card-height) * 0.7);
+        width: calc(var(--playing-card-width) * 2.5);
+      "
+    >
+      <div
+        class="table-font text-lg bg-gray-600 text-white px-4 py-2 rounded-lg text-center font-bold opacity-90"
+      >
+        PASSED
+      </div>
+    </div>
   </div>
 
+  <!-- Bottom hand score -->
   <app-hand-score
     class="absolute left-1/2 -translate-x-1/2"
     [hand]="hand"

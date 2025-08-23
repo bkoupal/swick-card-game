@@ -107,6 +107,16 @@ export class PlayerComponent {
     // Players can only see their own cards
     if (!this.clientIsPlayer) return false;
 
+    // HIDE CARDS FOR PLAYERS WHO PASSED (didn't knock in)
+    if (
+      this.gameState?.roundState !== 'idle' &&
+      this.gameState?.roundState !== 'dealing' &&
+      this.player?.hasKnockDecision &&
+      !this.player?.knockedIn
+    ) {
+      return false; // Player passed - hide their cards
+    }
+
     // If this is not the dealer, always show cards
     if (!this.isDealer) return true;
 
@@ -150,5 +160,31 @@ export class PlayerComponent {
       this.player.knockedIn &&
       this.player.tricksWon >= 0
     );
+  }
+
+  /**
+   * Check if this player has passed (knocked in = false after making decision)
+   */
+  hasPlayerPassed(): boolean {
+    if (!this.player || !this.gameState) return false;
+
+    // Player passed if they made a knock decision but didn't knock in
+    return this.player.hasKnockDecision && !this.player.knockedIn;
+  }
+
+  /**
+   * Get tooltip text for bot indicator
+   */
+  getBotTooltip(): string {
+    if (!this.player?.isBot) return '';
+
+    const difficultyLabels: { [key: string]: string } = {
+      easy: 'Easy Bot',
+      medium: 'Medium Bot',
+      hard: 'Hard Bot',
+    };
+
+    const difficulty = this.player.botDifficulty || 'easy';
+    return difficultyLabels[difficulty] || 'Bot Player';
   }
 }
