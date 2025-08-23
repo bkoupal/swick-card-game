@@ -134,18 +134,18 @@
 
 //Create font sizes that are relative to playing table size
 ::ng-deep .table-font-xl {
-  font-size: calc(var(--table-unit) * 0.08);
-  line-height: calc(var(--table-unit) * 0.12);
+  font-size: calc(var(--table-unit) * 0.065);
+  line-height: calc(var(--table-unit) * 0.095);
 }
 
 ::ng-deep .table-font-lg {
-  font-size: calc(var(--table-unit) * 0.04);
-  line-height: calc(var(--table-unit) * 0.06);
+  font-size: calc(var(--table-unit) * 0.05);
+  line-height: calc(var(--table-unit) * 0.075);
 }
 
 ::ng-deep .table-font {
-  font-size: calc(var(--table-unit) * 0.04);
-  line-height: calc(var(--table-unit) * 0.06);
+  font-size: calc(var(--table-unit) * 0.035);
+  line-height: calc(var(--table-unit) * 0.055);
 
   @screen 2xl {
     font-size: calc(var(--table-unit) * 0.024);
