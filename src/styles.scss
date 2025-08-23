@@ -28,6 +28,14 @@ body {
   .pill-popup {
     @apply rounded-full bg-neutral-800;
     padding: 0 0.4em;
+
+    /* New positioning rules */
+    position: fixed; /* stick to viewport instead of flowing */
+    top: 50px; /* align to very top */
+    left: 50%; /* center horizontally */
+    transform: translateX(-50%); /* shift back so it’s centered */
+    z-index: 1000; /* keep it above other content */
+
     animation-duration: 1s;
     animation-name: enter-animation;
     animation-fill-mode: forwards;
