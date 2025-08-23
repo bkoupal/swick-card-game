@@ -299,4 +299,16 @@ export class GameService {
 
     return 'Internal server error';
   }
+
+  public createTestBot(difficulty: 'easy' | 'medium' | 'hard') {
+    if (this._room) {
+      this._room.send('admin-create-bot', difficulty);
+    }
+  }
+
+  public listBots() {
+    if (this._room) {
+      this._room.send('admin-list-bots');
+    }
+  }
 }

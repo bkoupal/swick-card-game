@@ -560,6 +560,29 @@ export class GameRoom extends Room<GameState> {
         this.log('Admin created test special hands for multiple players');
       }
     });
+
+    // Admin bot management commands
+    this.onMessage(
+      'admin-create-bot',
+      (client, difficulty: 'easy' | 'medium' | 'hard') => {
+        if (!this.isAdmin(client.sessionId)) return;
+
+        // Create a simple test bot using existing createBot method but with random number
+        const botId = this.createBot(Math.floor(Math.random() * 999) + 1);
+        this.log(`Admin created ${difficulty} bot`);
+      }
+    );
+
+    this.onMessage('admin-list-bots', (client) => {
+      if (!this.isAdmin(client.sessionId)) return;
+
+      const bots = [...this.state.players.values()].filter((p) => p.isBot);
+      this.log(
+        `Active bots: ${bots
+          .map((b) => `${b.displayName} (${b.botDifficulty})`)
+          .join(', ')}`
+      );
+    });
   }
 
   onAuth(client: Client) {
@@ -791,10 +814,50 @@ export class GameRoom extends Room<GameState> {
       );
     }
 
-    // NEW: Require at least minPlayers and all of them “ready”
+    // Get current dealer
+    const dealer = this.state.players.get(this.state.dealerId);
+
+    // HANDLE BOT DEALER ANTE SETTING FIRST
+    if (dealer?.isBot && !this.state.dealerHasSetAnte) {
+      this.clock.setTimeout(() => {
+        if (this.state.roundState === 'idle' && !this.state.dealerHasSetAnte) {
+          // Bot dealer auto-sets ante to 3¢ (default)
+          for (const p of this.state.players.values()) {
+            p.bet = 3;
+          }
+          this.state.dealerHasSetAnte = true;
+          this.log(`Bot dealer ${dealer.displayName} auto-set ante to 3¢`);
+          this.triggerNewRoundCheck(); // Re-check after setting ante
+        }
+      }, 1000);
+      return;
+    }
+
+    // NOW HANDLE BOT AUTO-READY (after ante is set)
+    for (const player of playerArr) {
+      if (player.isBot && !player.ready && !player.disconnected) {
+        // Only ready bots if dealer has set ante (or if this bot IS the dealer and ante is set)
+        if (
+          this.state.dealerHasSetAnte ||
+          player.sessionId === this.state.dealerId
+        ) {
+          this.clock.setTimeout(() => {
+            if (player && !player.ready && this.state.roundState === 'idle') {
+              player.ready = true;
+              player.autoReady = true;
+              this.log(`${player.displayName} (bot) auto-readied`);
+              this.triggerNewRoundCheck(); // Recursive check
+            }
+          }, 500 + Math.random() * 1500);
+        }
+      }
+    }
+
+    // Check if we can start the round
     if (
       playerArr.length < gameConfig.minPlayers ||
-      playerArr.some((p) => !p.ready)
+      playerArr.some((p) => !p.ready) ||
+      !this.state.dealerHasSetAnte
     ) {
       return;
     }
@@ -993,6 +1056,9 @@ export class GameRoom extends Room<GameState> {
 
     // Dealer has time to decide whether to keep trump card
     this.setInactivitySkipTimeout();
+
+    // Trigger bot decisions if next player is a bot
+    this.triggerBotDecisions();
   }
 
   private startKnockInPhase() {
@@ -1025,6 +1091,9 @@ export class GameRoom extends Room<GameState> {
       this.state.currentKnockPlayerId = nextPlayer.sessionId;
       this.log(`It's ${nextPlayer.displayName}'s turn to knock`);
       this.setInactivitySkipTimeout();
+
+      // Trigger bot decisions if next player is a bot
+      this.triggerBotDecisions();
     } else {
       // All non-dealers have decided, check if any knocked in
       this.state.currentKnockPlayerId = '';
@@ -1096,6 +1165,9 @@ export class GameRoom extends Room<GameState> {
     this.log(`Starting discard/draw phase`);
     // Start with first non-dealer player in order they joined
     this.startNextDiscardTurn();
+
+    // Trigger bot decisions if next player is a bot
+    this.triggerBotDecisions();
   }
 
   private startNextDiscardTurn() {
@@ -1111,6 +1183,9 @@ export class GameRoom extends Room<GameState> {
       this.state.currentDiscardPlayerId = nextPlayer.sessionId;
       this.log(`It's ${nextPlayer.displayName}'s turn to discard/draw`);
       this.setInactivitySkipTimeout();
+
+      // Trigger bot decisions if next player is a bot
+      this.triggerBotDecisions();
     } else {
       // All non-dealers have made discard decisions
       this.state.currentDiscardPlayerId = '';
@@ -1163,6 +1238,9 @@ export class GameRoom extends Room<GameState> {
 
     this.log(`Dealer's turn to knock`);
     this.setInactivitySkipTimeout();
+
+    // Trigger bot decisions if next player is a bot
+    this.triggerBotDecisions();
   }
 
   private async startTrickTakingPhase() {
@@ -1205,6 +1283,9 @@ export class GameRoom extends Room<GameState> {
     this.state.currentTurnPlayerId = this.state.trickLeaderId;
 
     this.setInactivitySkipTimeout();
+
+    // ADD THIS LINE - This was missing!
+    this.triggerBotDecisions();
   }
 
   /** Iterator over players that knocked in */
@@ -1494,6 +1575,9 @@ export class GameRoom extends Room<GameState> {
 
     this.log(`Next player in trick: ${nextPlayerId}`);
     this.setInactivitySkipTimeout();
+
+    // Trigger bot decisions if next player is a bot
+    this.triggerBotDecisions();
   }
 
   /**
@@ -1558,6 +1642,9 @@ export class GameRoom extends Room<GameState> {
       // Resume turns
       this.state.roundState = 'turns';
       this.setInactivitySkipTimeout();
+
+      // Trigger bot decisions if next player is a bot
+      this.triggerBotDecisions();
     }
   }
 
@@ -1949,5 +2036,704 @@ export class GameRoom extends Room<GameState> {
     const firstPlayerIndex = (dealerIndex + 1) % knockedInPlayers.length;
 
     return knockedInPlayers[firstPlayerIndex] === playerId;
+  }
+
+  // ====== BOT AI DECISION METHODS ======
+
+  /**
+   * Triggers bot decisions based on current game state
+   */
+  private triggerBotDecisions() {
+    // Small delay to ensure state is stable
+    this.clock.setTimeout(() => {
+      this.log(`=== CHECKING BOT DECISIONS ===`);
+      this.log(`Current state: ${this.state.roundState}`);
+      this.log(`Current turn player: ${this.state.currentTurnPlayerId}`);
+      this.log(`Current discard player: ${this.state.currentDiscardPlayerId}`);
+      this.log(`Current knock player: ${this.state.currentKnockPlayerId}`);
+
+      for (const [playerId, player] of this.state.players.entries()) {
+        if (!player.isBot || player.disconnected) continue;
+
+        this.log(`Checking bot: ${player.displayName} (${playerId})`);
+
+        switch (this.state.roundState) {
+          case 'trump-selection':
+            if (playerId === this.state.dealerId) {
+              this.log(`  → Bot dealer needs trump decision`);
+              this.handleBotTrumpDecision(playerId);
+            }
+            break;
+
+          case 'knock-in':
+            if (
+              playerId === this.state.currentKnockPlayerId &&
+              !player.hasKnockDecision
+            ) {
+              this.log(`  → Bot needs knock decision`);
+              this.handleBotKnockDecision(playerId);
+            }
+            break;
+
+          case 'discard-draw':
+            // FIX: Check currentDiscardPlayerId, not currentTurnPlayerId
+            if (
+              playerId === this.state.currentDiscardPlayerId &&
+              !player.hasDiscardDecision
+            ) {
+              this.log(`  → Bot needs discard decision`);
+              this.handleBotDiscardDecision(playerId);
+            }
+            break;
+
+          case 'turns':
+            if (playerId === this.state.currentTurnPlayerId) {
+              this.log(`  → Bot needs to play card (${player.displayName})`);
+              this.handleBotCardPlay(playerId);
+            }
+            break;
+        }
+      }
+      this.log(`=== END BOT DECISION CHECK ===`);
+    }, 100);
+  }
+
+  /**
+   * Handles bot trump selection decision
+   */
+  private handleBotTrumpDecision(botId: string) {
+    const bot = this.state.players.get(botId);
+    if (!bot || !bot.isBot) return;
+
+    const thinkingTime = this.getBotThinkingTime(bot.botDifficulty);
+
+    this.clock.setTimeout(() => {
+      const shouldKeepTrump = this.evaluateTrumpKeeping(botId);
+      this.log(
+        `${bot.displayName} (${bot.botDifficulty}) decides to ${
+          shouldKeepTrump ? 'keep' : 'discard'
+        } trump`
+      );
+
+      // Use existing trump selection logic
+      if (shouldKeepTrump) {
+        if (this.state.trumpCard) {
+          bot.hand.cards.push(this.state.trumpCard);
+          this.state.dealerKeptTrump = true;
+          this.state.dealerTrumpValue = this.state.trumpCard.value!.value;
+        }
+      } else {
+        this.state.dealerKeptTrump = false;
+        this.state.dealerTrumpValue = '';
+      }
+
+      if (this.state.trumpCard) {
+        this.state.trumpSuit = this.state.trumpCard.value!.suit;
+      }
+
+      this.startKnockInPhase();
+    }, thinkingTime);
+  }
+
+  /**
+   * Handles bot knock-in decision
+   */
+  private handleBotKnockDecision(botId: string) {
+    const bot = this.state.players.get(botId);
+    if (!bot || !bot.isBot) return;
+
+    const thinkingTime = this.getBotThinkingTime(bot.botDifficulty);
+
+    this.clock.setTimeout(() => {
+      const shouldKnock = this.evaluateKnockDecision(botId);
+
+      // Use existing knock logic
+      bot.knockedIn = shouldKnock;
+      bot.hasKnockDecision = true;
+
+      if (!shouldKnock) {
+        bot.ready = false; // This removes them from the round
+        // BROADCAST PASS MESSAGE TO ALL PLAYERS
+        this.broadcast('playerPassed', {
+          playerId: botId,
+          playerName: bot.displayName,
+        });
+        this.log(`${bot.displayName} (${bot.botDifficulty}) passes`);
+      } else {
+        // BROADCAST KNOCK MESSAGE TO ALL PLAYERS
+        this.broadcast('playerKnockedIn', {
+          playerId: botId,
+          playerName: bot.displayName,
+        });
+        this.log(`${bot.displayName} (${bot.botDifficulty}) knocks in`);
+      }
+
+      this.inactivityTimeoutRef?.clear();
+
+      if (botId === this.state.dealerId) {
+        if (shouldKnock) {
+          this.log(`Dealer knocked in - starting dealer discard phase`);
+          this.state.roundState = 'discard-draw';
+          this.state.currentDiscardPlayerId = this.state.dealerId; // MAKE SURE THIS IS SET
+          this.log(
+            `Set currentDiscardPlayerId to: ${this.state.currentDiscardPlayerId}`
+          ); // DEBUG LOG
+          this.setInactivitySkipTimeout();
+
+          // TRIGGER BOT DECISIONS IMMEDIATELY FOR DEALER DISCARD
+          this.triggerBotDecisions();
+        } else {
+          this.log(`Dealer passed - ending hand`);
+          this.endRound();
+        }
+      } else {
+        this.startNextKnockTurn();
+      }
+    }, thinkingTime);
+  }
+
+  /**
+   * Handles bot discard/draw decision
+   */
+  private handleBotDiscardDecision(botId: string) {
+    const bot = this.state.players.get(botId);
+    if (!bot || !bot.isBot) return;
+
+    const thinkingTime = this.getBotThinkingTime(bot.botDifficulty);
+
+    this.clock.setTimeout(() => {
+      const discardIndexes = this.evaluateDiscardDecision(botId);
+
+      this.log(
+        `Bot ${bot.displayName} evaluated discard: ${discardIndexes.length} cards to discard`
+      );
+      this.log(`Bot hand has ${bot.hand.cards.length} cards`);
+
+      if (discardIndexes.length === 0) {
+        // Play with current cards
+        this.log(`${bot.displayName} (${bot.botDifficulty}) keeps all cards`);
+
+        // Handle dealer special case - if dealer has 4 cards (kept trump), must discard 1
+        if (botId === this.state.dealerId && bot.hand.cards.length > 3) {
+          this.log(
+            `Dealer has ${bot.hand.cards.length} cards - must discard 1 card (not trump)`
+          );
+          bot.dealerCompletedNormalDiscard = true;
+          bot.hasDiscardDecision = false;
+
+          // Clear any selections
+          for (const card of bot.hand.cards) {
+            card.selected = false;
+          }
+
+          // Find a non-trump card to discard
+          const nonTrumpIndex = this.findNonTrumpCardForDealer(bot);
+          if (nonTrumpIndex !== -1) {
+            bot.hand.cards[nonTrumpIndex].selected = true;
+            this.log(
+              `Bot dealer selected card ${nonTrumpIndex} for final discard`
+            );
+
+            // Now trigger the final discard
+            this.clock.setTimeout(() => {
+              this.handleBotFinalDiscard(botId);
+            }, 500);
+          }
+          return;
+        }
+
+        bot.hasDiscardDecision = true;
+        this.startNextDiscardTurn();
+      } else {
+        // Discard selected cards
+        this.log(
+          `${bot.displayName} (${bot.botDifficulty}) discards ${discardIndexes.length} cards`
+        );
+
+        // Mark cards for discard
+        discardIndexes.forEach((index) => {
+          if (bot.hand.cards[index]) {
+            bot.hand.cards[index].selected = true;
+          }
+        });
+
+        // Handle dealer final discard vs normal discard
+        const isDealerFinalDiscard =
+          botId === this.state.dealerId && bot.dealerCompletedNormalDiscard;
+
+        if (isDealerFinalDiscard) {
+          // Just remove the card
+          bot.hand.cards = bot.hand.cards.filter((card) => !card.selected);
+          bot.hasDiscardDecision = true;
+          this.log(`Dealer completed final discard - starting trick taking`);
+          this.startTrickTakingPhase();
+        } else {
+          // Normal discard/draw
+          bot.hand.cards = bot.hand.cards.filter((card) => !card.selected);
+          for (let i = 0; i < discardIndexes.length; i++) {
+            bot.hand.addCardFromDeck(this.state.deck, true);
+          }
+
+          if (botId === this.state.dealerId) {
+            bot.dealerCompletedNormalDiscard = true;
+            if (bot.hand.cards.length > 3) {
+              this.log(
+                `Dealer now has ${bot.hand.cards.length} cards - needs final discard`
+              );
+              // Clear selections and stay in discard phase for final discard
+              for (const card of bot.hand.cards) {
+                card.selected = false;
+              }
+              bot.hasDiscardDecision = false;
+              this.state.currentDiscardPlayerId = this.state.dealerId;
+              this.setInactivitySkipTimeout();
+
+              // Trigger bot decisions again for final discard
+              this.triggerBotDecisions();
+              return;
+            }
+          }
+
+          bot.hasDiscardDecision = true;
+          this.startNextDiscardTurn();
+        }
+      }
+    }, thinkingTime);
+  }
+
+  // ADD this helper method for dealer final discard:
+  private handleBotFinalDiscard(botId: string) {
+    const bot = this.state.players.get(botId);
+    if (!bot || !bot.isBot) return;
+
+    const selectedCards = bot.hand.cards.filter((card) => card.selected);
+
+    if (selectedCards.length === 1) {
+      this.log(
+        `Bot dealer final discard: ${selectedCards[0].value?.value} of ${selectedCards[0].value?.suit}`
+      );
+
+      // Remove the selected card
+      bot.hand.cards = bot.hand.cards.filter((card) => !card.selected);
+      bot.hasDiscardDecision = true;
+
+      this.log(
+        'Bot dealer completed final discard - all discard/draw complete'
+      );
+      this.startTrickTakingPhase();
+    } else {
+      this.log(
+        `ERROR: Bot dealer should have exactly 1 card selected for final discard, has ${selectedCards.length}`
+      );
+    }
+  }
+
+  // ADD this helper method to find non-trump card for dealer:
+  private findNonTrumpCardForDealer(dealer: Player): number {
+    const trumpValue = this.state.trumpCard?.value?.value;
+    const trumpSuit = this.state.trumpCard?.value?.suit;
+
+    for (let i = 0; i < dealer.hand.cards.length; i++) {
+      const card = dealer.hand.cards[i];
+      // Don't select the trump card that was kept
+      if (card.value?.suit !== trumpSuit || card.value?.value !== trumpValue) {
+        return i;
+      }
+    }
+
+    // Fallback: select first card (shouldn't happen)
+    return 0;
+  }
+
+  /**
+   * Handles bot card play during tricks
+   */
+  private handleBotCardPlay(botId: string) {
+    const bot = this.state.players.get(botId);
+    if (!bot || !bot.isBot) return;
+
+    const thinkingTime = this.getBotThinkingTime(bot.botDifficulty);
+
+    this.clock.setTimeout(() => {
+      const cardIndex = this.evaluateCardPlay(botId);
+
+      if (cardIndex !== -1 && cardIndex < bot.hand.cards.length) {
+        const cardToPlay = bot.hand.cards[cardIndex];
+
+        // VALIDATE CARD PLAY BEFORE ATTEMPTING
+        if (this.isValidCardPlay(bot, cardToPlay)) {
+          this.log(
+            `${bot.displayName} (${bot.botDifficulty}) plays ${cardToPlay.value?.value} of ${cardToPlay.value?.suit}`
+          );
+          this.playCard(bot, cardToPlay, cardIndex);
+        } else {
+          // CARD PLAY IS INVALID - FIND ANY LEGAL CARD
+          this.log(
+            `${bot.displayName}: Invalid card choice, finding legal alternative`
+          );
+          const legalIndex = this.findAnyLegalCard(bot);
+          if (legalIndex !== -1) {
+            const legalCard = bot.hand.cards[legalIndex];
+            this.log(
+              `${bot.displayName} plays ${legalCard.value?.value} of ${legalCard.value?.suit} (legal alternative)`
+            );
+            this.playCard(bot, legalCard, legalIndex);
+          } else {
+            this.log(`ERROR: ${bot.displayName} has no legal cards to play!`);
+            // EMERGENCY: Play first card as fallback
+            if (bot.hand.cards.length > 0) {
+              const emergencyCard = bot.hand.cards[0];
+              this.log(
+                `${bot.displayName} emergency plays ${emergencyCard.value?.value} of ${emergencyCard.value?.suit}`
+              );
+              this.playCard(bot, emergencyCard, 0);
+            }
+          }
+        }
+      } else {
+        this.log(`ERROR: ${bot.displayName} could not determine card to play`);
+      }
+    }, thinkingTime);
+  }
+
+  // ADD this new helper method:
+  private findAnyLegalCard(player: Player): number {
+    const hand = Array.from(player.hand.cards);
+
+    for (let i = 0; i < hand.length; i++) {
+      if (this.isValidCardPlay(player, hand[i])) {
+        return i;
+      }
+    }
+
+    return -1; // No legal cards found (shouldn't happen)
+  }
+
+  private getBotThinkingTime(difficulty: string): number {
+    const baseTimes: { [key: string]: number } = {
+      // FIX: Add proper typing
+      easy: 500,
+      medium: 1000,
+      hard: 1500,
+    };
+    const baseTime = baseTimes[difficulty] || 1000;
+    return baseTime + Math.random() * baseTime;
+  }
+
+  private evaluateTrumpKeeping(botId: string): boolean {
+    const bot = this.state.players.get(botId);
+    if (!bot || !this.state.trumpCard) return false;
+
+    const trumpValue = this.state.trumpCard.value?.value;
+    const trumpSuit = this.state.trumpCard.value?.suit;
+    const botHand = bot.hand.cards;
+
+    switch (bot.botDifficulty) {
+      case 'easy':
+        const isFaceTrumpEasy = ['J', 'Q', 'K', 'A'].includes(trumpValue || ''); // FIX: Rename variable
+        if (isFaceTrumpEasy) {
+          return Math.random() > 0.3;
+        }
+        return Math.random() > 0.6;
+
+      case 'medium':
+        const trumpCardsInHand = botHand.filter(
+          (card) => card.value?.suit === trumpSuit
+        ).length;
+        const isFaceTrumpMedium = ['J', 'Q', 'K', 'A'].includes(
+          trumpValue || ''
+        ); // FIX: Rename variable
+
+        if (trumpCardsInHand > 0 || isFaceTrumpMedium) {
+          return Math.random() > 0.2;
+        }
+        return Math.random() > 0.7;
+
+      case 'hard':
+        const trumpsInHand = botHand.filter(
+          (card) => card.value?.suit === trumpSuit
+        ).length;
+        const faceCardsInHand = botHand.filter((card) =>
+          ['J', 'Q', 'K', 'A'].includes(card.value?.value || '')
+        ).length;
+        const isFaceTrumpHard = ['J', 'Q', 'K', 'A'].includes(trumpValue || ''); // FIX: Rename variable
+
+        let keepScore = 0;
+        if (isFaceTrumpHard) keepScore += 3;
+        if (trumpsInHand > 0) keepScore += trumpsInHand * 2;
+        if (faceCardsInHand >= 2) keepScore += 2;
+
+        return keepScore >= 3;
+
+      default:
+        return Math.random() > 0.5;
+    }
+  }
+
+  private evaluateKnockDecision(botId: string): boolean {
+    const bot = this.state.players.get(botId);
+    if (!bot) return false;
+
+    const botHand = Array.from(bot.hand.cards); // FIX: Convert ArraySchema to Array
+    const trumpSuit = this.state.trumpSuit;
+
+    // Check for special hands
+    if (this.hasSpecialHand(botHand, trumpSuit)) {
+      return true;
+    }
+
+    switch (bot.botDifficulty) {
+      case 'easy':
+        return Math.random() > 0.4;
+
+      case 'medium':
+        const handStrength = this.evaluateHandStrength(botHand, trumpSuit);
+        return handStrength >= 0.4;
+
+      case 'hard':
+        const strength = this.evaluateHandStrength(botHand, trumpSuit);
+        const potOdds = this.state.potValue / (bot.bet || 3);
+        const adjustedThreshold = 0.5 - potOdds * 0.05;
+        return strength >= adjustedThreshold;
+
+      default:
+        return Math.random() > 0.5;
+    }
+  }
+
+  private evaluateDiscardDecision(botId: string): number[] {
+    const bot = this.state.players.get(botId);
+    if (!bot) return [];
+
+    const botHand = Array.from(bot.hand.cards); // FIX: Convert ArraySchema to Array
+    const trumpSuit = this.state.trumpSuit;
+
+    // Don't discard if we have special hand
+    if (this.hasSpecialHand(botHand, trumpSuit)) {
+      return [];
+    }
+
+    const isDealerFinalDiscard =
+      botId === this.state.dealerId && bot.dealerCompletedNormalDiscard;
+
+    if (isDealerFinalDiscard) {
+      // Find worst non-trump card to discard
+      for (let i = 0; i < botHand.length; i++) {
+        const card = botHand[i];
+        if (
+          card.value?.suit !== trumpSuit ||
+          card.value?.value !== this.state.trumpCard?.value?.value
+        ) {
+          const score = this.scoreCard(card, trumpSuit, bot.botDifficulty);
+          if (score < 0.4) {
+            return [i];
+          }
+        }
+      }
+      return [0]; // Fallback
+    }
+
+    // Normal discard logic
+    const cardScores = botHand.map((card, index) => ({
+      index,
+      score: this.scoreCard(card, trumpSuit, bot.botDifficulty),
+    }));
+
+    cardScores.sort((a, b) => a.score - b.score);
+
+    switch (bot.botDifficulty) {
+      case 'easy':
+        const numToDiscard = Math.floor(Math.random() * 3);
+        return cardScores.slice(0, numToDiscard).map((cs) => cs.index);
+
+      case 'medium':
+        return cardScores
+          .filter((cs) => cs.score < 0.3)
+          .slice(0, 2)
+          .map((cs) => cs.index);
+
+      case 'hard':
+        // Try to improve toward special hands or keep strong cards
+        return cardScores
+          .filter((cs) => cs.score < 0.25)
+          .slice(0, 2)
+          .map((cs) => cs.index);
+
+      default:
+        return [];
+    }
+  }
+
+  private evaluateCardPlay(botId: string): number {
+    const bot = this.state.players.get(botId);
+    if (!bot) return -1;
+
+    const botHand = Array.from(bot.hand.cards); // FIX: Convert ArraySchema to Array
+    const legalPlays = this.getLegalPlays(botHand);
+
+    if (legalPlays.length === 0) return -1;
+    if (legalPlays.length === 1) return legalPlays[0];
+
+    switch (bot.botDifficulty) {
+      case 'easy':
+        return legalPlays[Math.floor(Math.random() * legalPlays.length)];
+
+      case 'medium':
+      case 'hard':
+        // Try to win trick if possible, otherwise play low
+        for (const playIndex of legalPlays) {
+          const card = botHand[playIndex];
+          if (this.wouldWinTrick(card)) {
+            return playIndex;
+          }
+        }
+
+        // Play lowest card
+        const cardScores = legalPlays.map((index) => ({
+          index,
+          score: this.scoreCard(
+            botHand[index],
+            this.state.trumpSuit,
+            bot.botDifficulty
+          ),
+        }));
+
+        cardScores.sort((a, b) => a.score - b.score);
+        return cardScores[0].index;
+
+      default:
+        return legalPlays[0];
+    }
+  }
+
+  // ====== UTILITY METHODS (CORRECTED) ======
+
+  private hasSpecialHand(hand: Card[], trumpSuit: string): boolean {
+    const values = hand.map((card) => card.value?.value).filter(Boolean);
+    const suits = hand.map((card) => card.value?.suit).filter(Boolean);
+
+    // Three Aces
+    if (values.filter((v) => v === 'A').length === 3) return true;
+
+    // Three Sevens
+    if (values.filter((v) => v === '7').length === 3) return true;
+
+    // A-K-Q of Trump
+    if (suits.filter((s) => s === trumpSuit).length === 3) {
+      const trumpValues = hand
+        .filter((card) => card.value?.suit === trumpSuit)
+        .map((card) => card.value?.value);
+      if (
+        trumpValues.includes('A') &&
+        trumpValues.includes('K') &&
+        trumpValues.includes('Q')
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private evaluateHandStrength(hand: Card[], trumpSuit: string): number {
+    if (this.hasSpecialHand(hand, trumpSuit)) return 1.0;
+
+    let score = 0;
+    const trumpCards = hand.filter(
+      (card) => card.value?.suit === trumpSuit
+    ).length;
+    const faceCards = hand.filter((card) =>
+      ['J', 'Q', 'K', 'A'].includes(card.value?.value || '')
+    ).length;
+
+    score += trumpCards * 0.3;
+    score += faceCards * 0.2;
+
+    return Math.min(score, 1.0);
+  }
+
+  private scoreCard(card: Card, trumpSuit: string, difficulty: string): number {
+    const value = card.value?.value;
+    const suit = card.value?.suit;
+
+    let score = 0;
+
+    if (suit === trumpSuit) score += 0.4;
+
+    const faceValues = ['J', 'Q', 'K', 'A'];
+    if (faceValues.includes(value || '')) {
+      score += 0.3;
+    }
+
+    if (value === 'A') score += 0.2;
+    if (value === '7') score += 0.1;
+
+    return score;
+  }
+
+  private getLegalPlays(hand: Card[]): number[] {
+    const currentTrick = this.state.currentTrick;
+    const trumpSuit = this.state.trumpSuit;
+    const legalPlays: number[] = [];
+
+    // If no trick started, any card is legal (except Ace of Trump rule)
+    if (currentTrick.length === 0) {
+      // Check for Ace of Trump rule on first trick
+      if (this.state.currentTrickNumber === 1) {
+        const aceOfTrumpIndex = hand.findIndex(
+          (card) => card.value?.value === 'A' && card.value?.suit === trumpSuit
+        );
+
+        // If player has Ace of Trump and is first after dealer, must play it
+        const currentPlayerId = this.state.currentTurnPlayerId;
+        if (
+          aceOfTrumpIndex !== -1 &&
+          this.isFirstPlayerAfterDealer(currentPlayerId)
+        ) {
+          return [aceOfTrumpIndex]; // Must play Ace of Trump
+        }
+      }
+
+      // Otherwise any card is legal when leading
+      return hand.map((_, index) => index);
+    }
+
+    const leadSuit = currentTrick[0].card.value?.suit;
+
+    // Must follow suit if possible
+    const sameSuitIndexes = hand
+      .map((card, index) => ({ card, index }))
+      .filter(({ card }) => card.value?.suit === leadSuit)
+      .map(({ index }) => index);
+
+    if (sameSuitIndexes.length > 0) {
+      return sameSuitIndexes;
+    }
+
+    // Can't follow suit - must trump if possible
+    const trumpIndexes = hand
+      .map((card, index) => ({ card, index }))
+      .filter(({ card }) => card.value?.suit === trumpSuit)
+      .map(({ index }) => index);
+
+    if (trumpIndexes.length > 0) {
+      return trumpIndexes;
+    }
+
+    // Can't follow suit or trump - any card is legal
+    return hand.map((_, index) => index);
+  }
+
+  private wouldWinTrick(card: Card): boolean {
+    // Simplified logic - in a real implementation, this would simulate the trick
+    const isTrump = card.value?.suit === this.state.trumpSuit;
+    const isFace = ['J', 'Q', 'K', 'A'].includes(card.value?.value || '');
+
+    // Higher chance to win with trump or face cards
+    if (isTrump && isFace) return Math.random() > 0.3;
+    if (isTrump) return Math.random() > 0.5;
+    if (isFace) return Math.random() > 0.6;
+
+    return Math.random() > 0.8;
   }
 }
