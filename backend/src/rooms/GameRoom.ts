@@ -1953,6 +1953,17 @@ export class GameRoom extends Room<GameState> {
             `  ${player.displayName} GOES SET SINGLE - owes ${player.setAmount}¢`
           );
         }
+        // Subtract the money from player's account
+        player.money -= player.setAmount;
+        this.log(
+          `  💰 Subtracted ${player.setAmount}¢ from ${player.displayName}'s account (now has ${player.money}¢)`
+        );
+
+        // Ensure player doesn't go below 0 money
+        if (player.money < 0) {
+          this.log(`  ⚠️  ${player.displayName} went below 0, setting to 0`);
+          player.money = 0;
+        }
       } else {
         this.log(
           `  ${player.displayName} is safe with ${player.tricksWon} tricks`

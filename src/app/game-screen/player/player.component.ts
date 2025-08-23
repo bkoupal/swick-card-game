@@ -121,7 +121,11 @@ export class PlayerComponent {
     if (!this.isDealer) return true;
 
     // For dealers, hide cards during specific phases until their turn
-    if (this.gameState?.roundState === 'knock-in') {
+    if (
+      this.gameState?.roundState === 'dealing' ||
+      this.gameState?.roundState === 'knock-in' ||
+      this.gameState?.roundState === 'trump-selection'
+    ) {
       // Show cards if dealer has made their knock decision
       if (this.player?.hasKnockDecision) return true;
 
