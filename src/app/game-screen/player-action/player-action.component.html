@@ -1,6 +1,9 @@
 <div class="flex flex-col-reverse sm:flex-col gap-4 m-4">
-  <!-- SWICK Ante Setting (Dealer Only) -->
-  <div *ngIf="!readyMenuHidden && isDealer && !ready" class="grid gap-1">
+  <!-- SWICK Ante Setting (Dealer Only) - HIDE if players went set last round -->
+  <div
+    *ngIf="!readyMenuHidden && isDealer && !ready && !hasGoingSetBonus"
+    class="grid gap-1"
+  >
     <span class="text-center table-font">Set Ante (Dealer)</span>
     <div class="grid grid-cols-5 gap-1">
       <button
@@ -19,16 +22,24 @@
     </div>
   </div>
 
-  <!-- SWICK Ante Display (Non-Dealers) -->
-  <!-- Only show this AFTER dealer has set ante -->
+  <!-- SWICK Going Set Bonus Display (Dealer Only) - SHOW when players went set -->
   <div
-    *ngIf="!readyMenuHidden && !isDealer && dealerHasSetAnte"
+    *ngIf="!readyMenuHidden && isDealer && !ready && hasGoingSetBonus"
     class="grid gap-1"
   >
-    <span class="text-center table-font">Ante Set by Dealer</span>
-    <div class="text-center bg-gray-700 rounded px-3 py-2">
-      <div class="text-lg font-bold">{{ currentBet }}¢</div>
-      <div class="text-xs text-gray-400">You will ante {{ currentBet }}¢</div>
+    <span class="text-center table-font text-yellow-400"
+      >Going Set Bonus Active</span
+    >
+    <div
+      class="text-center bg-red-900 rounded px-3 py-2 border-2 border-red-600"
+    >
+      <div class="text-lg font-bold text-red-300">
+        {{ goingSetBonusAmount }}¢
+      </div>
+      <div class="text-xs text-red-400 mb-2">Carried over from last round</div>
+      <div class="text-sm text-yellow-300">
+        Only dealer pays 3¢ ante this round
+      </div>
     </div>
   </div>
 
@@ -43,15 +54,197 @@
     </button>
   </div>
 
-  <!-- Knock In Menu -->
-  <div class="pill-menu" *ngIf="knockInMenuVisible">
-    <span class="whitespace-normal">Trump Suit: {{ trumpSuit }}</span>
+  <!-- Dealer Knock In Menu (Special trump keeping logic) -->
+  <div class="pill-menu" *ngIf="knockInMenuVisible && isDealer">
+    <span *ngIf="dealerKeptTrump" class="text-yellow-400 text-sm">
+      You kept: {{ dealerTrumpValue }} of {{ trumpSuit }}
+    </span>
+    <button (click)="knockIn.emit(true)" data-cy="dealer-knock-in">
+      Knock In
+    </button>
+    <button
+      (click)="knockIn.emit(false)"
+      data-cy="dealer-pass"
+      [class]="
+        dealerSetType === 'double'
+          ? 'bg-red-600 hover:bg-red-700'
+          : 'bg-orange-600 hover:bg-orange-700'
+      "
+    >
+      {{ dealerPassButtonText }}
+    </button>
+  </div>
+
+  <!-- Non-Dealer Knock In Menu (Standard) -->
+  <div class="pill-menu" *ngIf="knockInMenuVisible && !isDealer">
     <button (click)="knockIn.emit(true)" data-cy="knock-in">Knock In</button>
     <button (click)="knockIn.emit(false)" data-cy="pass">Pass</button>
   </div>
 
-  <!-- Discard/Draw Menu -->
-  <div class="pill-menu" *ngIf="discardDrawMenuVisible">
+  <!-- Dealer Discard/Draw Menu - Didn't Keep Trump -->
+  <div
+    class="pill-menu"
+    *ngIf="
+      discardDrawMenuVisible &&
+      isDealer &&
+      !dealerKeptTrump &&
+      !isDealerFinalDiscard
+    "
+  >
+    <span class="whitespace-normal">
+      Select cards from your hand, then choose:
+    </span>
+    <button
+      (click)="playCards.emit()"
+      data-cy="dealer-play-cards"
+      class="bg-green-600 hover:bg-green-700"
+    >
+      Play These Cards
+    </button>
+    <button
+      (click)="discardDraw.emit()"
+      data-cy="dealer-discard-draw"
+      [disabled]="selectedCardCount === 0"
+      [class.opacity-50]="selectedCardCount === 0"
+      [class.cursor-not-allowed]="selectedCardCount === 0"
+    >
+      Discard & Draw ({{ selectedCardCount }} cards)
+    </button>
+  </div>
+
+  <!-- Dealer Discard/Draw Menu - Kept Trump -->
+  <div
+    class="pill-menu"
+    *ngIf="
+      discardDrawMenuVisible &&
+      isDealer &&
+      dealerKeptTrump &&
+      !isDealerFinalDiscard
+    "
+  >
+    <span class="whitespace-normal">
+      Select cards from your hand, then choose:
+    </span>
+    <button
+      (click)="discardDraw.emit()"
+      data-cy="dealer-discard-draw"
+      [disabled]="selectedCardCount === 0"
+      [class.opacity-50]="selectedCardCount === 0"
+      [class.cursor-not-allowed]="selectedCardCount === 0"
+    >
+      Discard & Draw ({{ selectedCardCount }} cards)
+    </button>
+    <button
+      (click)="dealerGoSet.emit(true)"
+      data-cy="dealer-go-set"
+      class="bg-orange-600 hover:bg-orange-700"
+    >
+      {{ dealerPassButtonText }}
+    </button>
+  </div>
+
+  <!-- Dealer Final Discard Menu - Before Final Card Selection -->
+  <div
+    class="pill-menu"
+    *ngIf="
+      discardDrawMenuVisible &&
+      isDealer &&
+      isDealerFinalDiscard &&
+      selectedCardCount !== 1
+    "
+  >
+    <span class="whitespace-normal">
+      Select 1 card to discard (you have 4 cards)
+    </span>
+    <button
+      (click)="discardDraw.emit()"
+      data-cy="dealer-final-discard"
+      [disabled]="selectedCardCount !== 1"
+      [class.opacity-50]="selectedCardCount !== 1"
+      [class.cursor-not-allowed]="selectedCardCount !== 1"
+    >
+      Discard Selected Card
+    </button>
+    <button
+      *ngIf="dealerKeptTrump"
+      (click)="dealerGoSet.emit(true)"
+      data-cy="dealer-final-go-set"
+      class="bg-orange-600 hover:bg-orange-700"
+    >
+      {{ dealerFinalDecisionText }}
+    </button>
+  </div>
+
+  <!-- Dealer Final Discard Menu - After Final Card Selection (Show I'm Playing) -->
+  <div
+    class="pill-menu"
+    *ngIf="
+      discardDrawMenuVisible &&
+      isDealer &&
+      isDealerFinalDiscard &&
+      selectedCardCount === 1 &&
+      dealerKeptTrump
+    "
+  >
+    <span class="whitespace-normal">
+      Ready to play with 3 cards, or go set?
+    </span>
+    <button
+      (click)="discardDraw.emit()"
+      data-cy="dealer-final-discard"
+      class="bg-blue-600 hover:bg-blue-700"
+    >
+      Discard & Play
+    </button>
+    <button
+      (click)="dealerGoSet.emit(true)"
+      data-cy="dealer-final-go-set"
+      class="bg-orange-600 hover:bg-orange-700"
+    >
+      {{ dealerFinalDecisionText }}
+    </button>
+  </div>
+
+  <!-- Dealer Final Discard Menu - Didn't Keep Trump (Still can pass) -->
+  <div
+    class="pill-menu"
+    *ngIf="
+      discardDrawMenuVisible &&
+      isDealer &&
+      isDealerFinalDiscard &&
+      !dealerKeptTrump
+    "
+  >
+    <span class="whitespace-normal">
+      Select 1 card to discard (you have 4 cards), then choose:
+    </span>
+    <button
+      (click)="playCards.emit()"
+      data-cy="dealer-final-play"
+      class="bg-green-600 hover:bg-green-700"
+    >
+      I'm Playing
+    </button>
+    <button
+      (click)="discardDraw.emit()"
+      data-cy="dealer-final-discard"
+      [disabled]="selectedCardCount !== 1"
+      [class.opacity-50]="selectedCardCount !== 1"
+      [class.cursor-not-allowed]="selectedCardCount !== 1"
+    >
+      Discard Selected Card
+    </button>
+    <button
+      (click)="dealerGoSet.emit(true)"
+      data-cy="dealer-final-pass"
+      class="bg-gray-600 hover:bg-gray-700"
+    >
+      Pass
+    </button>
+  </div>
+
+  <!-- Non-Dealer Discard/Draw Menu (Standard) -->
+  <div class="pill-menu" *ngIf="discardDrawMenuVisible && !isDealer">
     <span class="whitespace-normal">
       Select cards from your hand, then choose:
     </span>
@@ -96,15 +289,6 @@
       <button style="flex-grow: 100" (click)="readyChange.emit(!ready)">
         {{ ready ? "Not ready" : "Ready" }}
       </button>
-      <!-- div class="h-9">
-        <mat-checkbox
-          class="-mt-2.5 mr-4"
-          [checked]="autoReady"
-          (change)="autoReadyChange.emit($event.checked)"
-          matTooltip="Automatically sets player as ready after every round"
-          >Auto Ready</mat-checkbox
-        >
-      </div -->
     </div>
   </div>
 

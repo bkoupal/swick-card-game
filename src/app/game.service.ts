@@ -311,4 +311,8 @@ export class GameService {
       this._room.send('admin-list-bots');
     }
   }
+
+  public dealerGoSet(goSet: boolean) {
+    this.room?.send('dealerGoSet', goSet);
+  }
 }

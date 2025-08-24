@@ -364,6 +364,12 @@
     [selectedCardCount]="getSelectedCardCount()"
     (playCards)="game.playCards()"
     (discardDraw)="game.discardDraw()"
+    [dealerKeptTrump]="game.room!.state.dealerKeptTrump"
+    [dealerTrumpValue]="game.room!.state.dealerTrumpValue"
+    [isDealerFinalDiscard]="isDealerFinalDiscard()"
+    (dealerGoSet)="game.dealerGoSet($event)"
+    [hasGoingSetBonus]="getNextRoundBonus() > 0"
+    [goingSetBonusAmount]="getNextRoundBonus()"
   ></app-player-actions>
 
   <span class="text-neutral-400 self-end" data-cy="roomId-value">
