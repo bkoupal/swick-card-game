@@ -746,7 +746,7 @@ export class GameRoom extends Room<GameState> {
         if (remainingPlayers.length === 0) {
           // No players left - end the round
           this.log(`No players left after dealer went set - ending hand`);
-          this.endRound();
+          this.endRoundWithoutTricks();
         } else {
           // Continue with remaining players - proceed to trick-taking phase
           this.log(
@@ -826,6 +826,78 @@ export class GameRoom extends Room<GameState> {
 
     for (let i = 0; i < botCount; i++) {
       this.createBot(i + 1);
+    }
+  }
+
+  private handleDealerPassing(dealer: Player) {
+    this.log(`Dealer passed - checking remaining players`);
+
+    // Dealer goes set single (always single when choosing not to play during knock-in)
+    dealer.wentSet = true;
+    dealer.setType = 'single';
+    dealer.setAmount = this.state.potValue;
+    dealer.money -= dealer.setAmount;
+    dealer.ready = false; // Remove dealer from round
+
+    this.log(
+      `Dealer goes set SINGLE - owes ${dealer.setAmount}¢ (now has ${dealer.money}¢)`
+    );
+
+    // Ensure dealer doesn't go below 0 money
+    if (dealer.money < 0) {
+      this.log(`Dealer went below 0, setting to 0`);
+      dealer.money = 0;
+    }
+
+    // Add to next round pot bonus
+    this.state.nextRoundPotBonus += dealer.setAmount;
+
+    // ✅ KEY FIX: Check if there are remaining players who should auto-win
+    const remainingPlayers = [...this.state.players.values()].filter(
+      (p) => p.ready && p.knockedIn
+    );
+
+    this.log(
+      `Remaining players after dealer passed: ${remainingPlayers.length}`
+    );
+
+    if (remainingPlayers.length === 0) {
+      // No players left - end the round normally
+      this.log(`No players left after dealer passed - ending hand`);
+      this.endRoundWithoutTricks();
+    } else if (remainingPlayers.length === 1) {
+      // ✅ SINGLE PLAYER AUTO-WIN: Award all tricks to the remaining player
+      const winnerPlayer = remainingPlayers[0];
+      this.log(
+        `Single player remaining: ${winnerPlayer.displayName} wins all tricks automatically`
+      );
+
+      // Award all 3 tricks to the winner
+      winnerPlayer.tricksWon = 3;
+
+      // Calculate winnings (full pot)
+      const fullPot = this.state.potValue;
+      winnerPlayer.money += fullPot;
+
+      this.log(
+        `${winnerPlayer.displayName} wins full pot of ${fullPot}¢ (now has ${winnerPlayer.money}¢)`
+      );
+
+      // Broadcast the auto-win to all players
+      this.broadcast('singlePlayerAutoWin', {
+        winnerId: winnerPlayer.sessionId,
+        winnerName: winnerPlayer.displayName,
+        potAmount: fullPot,
+      });
+
+      // End the round - going set calculation will now be correct
+      this.endRoundWithoutTricks();
+    } else {
+      // Multiple players remaining - continue with normal discard/draw and trick-taking
+      this.log(
+        `${remainingPlayers.length} players remaining - continuing game`
+      );
+      this.startDiscardDrawPhase();
     }
   }
 
@@ -2092,6 +2164,11 @@ export class GameRoom extends Room<GameState> {
         } tricks won`
       );
 
+      if (!player.knockedIn) {
+        this.log(`  Player didn't knock in - skipping going set check`);
+        continue; // Skip players who didn't knock in
+      }
+
       // Determine if player goes set based on SWICK rules
       let goesSet = false;
       let setType = 'single';
@@ -2152,7 +2229,7 @@ export class GameRoom extends Room<GameState> {
         }
       } else {
         this.log(
-          `  ${player.displayName} is safe with ${player.tricksWon} tricks`
+          `  ${player.displayName} won ${player.tricksWon} tricks - no going set`
         );
       }
     }
@@ -2371,17 +2448,15 @@ export class GameRoom extends Room<GameState> {
         if (shouldKnock) {
           this.log(`Dealer knocked in - starting dealer discard phase`);
           this.state.roundState = 'discard-draw';
-          this.state.currentDiscardPlayerId = this.state.dealerId; // MAKE SURE THIS IS SET
+          this.state.currentDiscardPlayerId = this.state.dealerId;
           this.log(
             `Set currentDiscardPlayerId to: ${this.state.currentDiscardPlayerId}`
-          ); // DEBUG LOG
+          );
           this.setInactivitySkipTimeout();
-
-          // TRIGGER BOT DECISIONS IMMEDIATELY FOR DEALER DISCARD
           this.triggerBotDecisions();
         } else {
-          this.log(`Dealer passed - ending hand`);
-          this.endRound();
+          // ✅ FIXED - Handle dealer passing with proper logic
+          this.handleDealerPassing(bot);
         }
       } else {
         this.startNextKnockTurn();
