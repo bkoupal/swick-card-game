@@ -59,6 +59,66 @@ export class GameRoom extends Room<GameState> {
     );
   }
 
+  private async endRoundWithoutTricks() {
+    this.log(`Ending round without trick-taking`);
+    this.state.roundState = 'end';
+
+    // Don't call calculateGoingSet() - we already handled the going set logic above
+
+    // Delay before starting next phase
+    const baseDelay =
+      gameConfig.roundStateEndTimeBase +
+      this.state.players.size * gameConfig.roundStateEndTimePlayer;
+
+    const hasGoingSetResults = [...this.state.players.values()].some(
+      (p) => p.wentSet
+    );
+    const extraDelayForGoingSet = hasGoingSetResults ? 3000 : 0;
+
+    await this.delay(baseDelay + extraDelayForGoingSet);
+
+    // Clear trick data for next hand
+    this.state.currentTrick.clear();
+    this.state.completedTricks.clear();
+    this.state.currentTrickNumber = 1;
+    this.state.trickLeaderId = '';
+
+    // Clear trump data
+    this.state.trumpSuit = '';
+    this.state.trumpCard = undefined;
+    this.state.potValue = 0;
+
+    // Clear ante data
+    this.state.dealerHasSetAnte = false;
+
+    // Reset all players for next hand
+    for (const player of this.state.players.values()) {
+      player.hand.clear();
+      player.ready = player.autoReady;
+      player.roundOutcome = '';
+      player.knockedIn = false;
+      player.hasKnockDecision = false;
+      player.hasDiscardDecision = false;
+      player.dealerCompletedNormalDiscard = false;
+
+      // Clear card selections
+      player.selectedCards.clear();
+      for (const card of player.hand.cards) {
+        card.selected = false;
+      }
+
+      // Remove players that are still disconnected
+      if (player.disconnected) this.deletePlayer(player.sessionId);
+    }
+
+    // Change starting player/dealer for next round
+    this.roundIteratorOffset++;
+
+    this.log(`Starting idle phase`);
+    this.state.roundState = 'idle';
+    this.triggerNewRoundCheck();
+  }
+
   /**
    * Checks if a client is an admin
    */
@@ -102,8 +162,17 @@ export class GameRoom extends Room<GameState> {
 
       const player = this.state.players.get(client.sessionId);
 
-      // If dealer is becoming ready, mark that they have set ante (even if it's default 3¢)
+      // If dealer is becoming ready and there's a going set bonus, auto-set ante
       if (state && client.sessionId === this.state.dealerId) {
+        if (this.state.nextRoundPotBonus > 0) {
+          // Going set bonus active - ante is automatically 3¢
+          for (const p of this.state.players.values()) {
+            p.bet = 3; // Fixed ante when players went set
+          }
+          this.log(
+            `Dealer ante automatically set to 3¢ (going set bonus: ${this.state.nextRoundPotBonus}¢)`
+          );
+        }
         this.state.dealerHasSetAnte = true;
         this.log(`Dealer confirmed ante at ${player.bet}¢`);
       }
@@ -309,9 +378,60 @@ export class GameRoom extends Room<GameState> {
           this.state.currentDiscardPlayerId = this.state.dealerId;
           this.setInactivitySkipTimeout();
         } else {
-          // Dealer passed, end the hand
-          this.log(`Dealer passed - ending hand`);
-          this.endRound();
+          // DEALER PASSED - Handle going set logic immediately
+          this.log(`Dealer passed during knock-in - dealer goes set single`);
+
+          // Dealer goes set single (always single when choosing not to play during knock-in)
+          player.wentSet = true;
+          player.setType = 'single';
+          player.setAmount = this.state.potValue;
+          player.money -= player.setAmount;
+
+          this.log(
+            `Dealer goes set SINGLE - owes ${player.setAmount}¢ (now has ${player.money}¢)`
+          );
+
+          // Ensure dealer doesn't go below 0 money
+          if (player.money < 0) {
+            this.log(`Dealer went below 0, setting to 0`);
+            player.money = 0;
+          }
+
+          // Add dealer's set amount to next round bonus
+          this.state.nextRoundPotBonus += player.setAmount;
+
+          // Check remaining knocked-in players
+          const remainingPlayers = [...this.state.players.values()].filter(
+            (p) => p.ready && p.knockedIn
+          );
+
+          if (remainingPlayers.length === 0) {
+            // No players left - end the round
+            this.log(`No players left after dealer went set - ending hand`);
+            this.endRoundWithoutTricks();
+          } else if (remainingPlayers.length === 1) {
+            // Only 1 player left - they win all 3 tricks automatically
+            this.log(
+              `Only 1 player left (${remainingPlayers[0].displayName}) - wins all tricks automatically`
+            );
+
+            const winner = remainingPlayers[0];
+            winner.tricksWon = 3; // Wins all 3 tricks
+            winner.money += this.state.potValue; // Gets entire pot
+            winner.roundOutcome = 'win';
+
+            this.log(
+              `${winner.displayName} wins entire pot of ${this.state.potValue}¢ automatically`
+            );
+
+            this.endRoundWithoutTricks();
+          } else {
+            // 2+ players left - proceed to trick-taking phase
+            this.log(
+              `${remainingPlayers.length} players remaining - proceeding to trick-taking`
+            );
+            this.startTrickTakingPhase();
+          }
         }
       } else {
         // Non-dealer made decision, continue with existing flow
@@ -583,6 +703,60 @@ export class GameRoom extends Room<GameState> {
           .join(', ')}`
       );
     });
+
+    this.onMessage('dealerGoSet', (client, goSet: boolean) => {
+      if (this.state.roundState != 'discard-draw' || typeof goSet != 'boolean')
+        return;
+
+      const player = this.state.players.get(client.sessionId);
+      if (!player || client.sessionId !== this.state.dealerId) return;
+
+      this.log(`Dealer chooses to go set: ${goSet}`, client);
+
+      if (goSet) {
+        // Dealer chooses to go set - they pass but pay SINGLE penalty (always single when choosing not to play)
+        player.knockedIn = false; // Dealer is no longer in the hand
+        player.hasKnockDecision = true; // Mark decision as made
+        player.ready = false; // Remove from round
+
+        // Dealer who chooses not to play ALWAYS goes set single (regardless of trump value)
+        player.wentSet = true;
+        player.setType = 'single';
+        player.setAmount = this.state.potValue;
+        player.money -= player.setAmount; // Subtract immediately
+
+        this.log(
+          `Dealer chose not to play - goes set SINGLE - owes ${player.setAmount}¢ (now has ${player.money}¢)`
+        );
+
+        // Ensure player doesn't go below 0 money
+        if (player.money < 0) {
+          this.log(`Dealer went below 0, setting to 0`);
+          player.money = 0;
+        }
+
+        // Add to next round pot bonus
+        this.state.nextRoundPotBonus += player.setAmount;
+
+        // Check if there are any other players left in the hand
+        const remainingPlayers = [...this.state.players.values()].filter(
+          (p) => p.ready && p.knockedIn
+        );
+
+        if (remainingPlayers.length === 0) {
+          // No players left - end the round
+          this.log(`No players left after dealer went set - ending hand`);
+          this.endRound();
+        } else {
+          // Continue with remaining players - proceed to trick-taking phase
+          this.log(
+            `${remainingPlayers.length} players remaining - starting trick-taking`
+          );
+          this.startTrickTakingPhase();
+        }
+      }
+      // If goSet is false, this message shouldn't be sent, but just ignore it
+    });
   }
 
   onAuth(client: Client) {
@@ -821,12 +995,24 @@ export class GameRoom extends Room<GameState> {
     if (dealer?.isBot && !this.state.dealerHasSetAnte) {
       this.clock.setTimeout(() => {
         if (this.state.roundState === 'idle' && !this.state.dealerHasSetAnte) {
-          // Bot dealer auto-sets ante to 3¢ (default)
-          for (const p of this.state.players.values()) {
-            p.bet = 3;
+          // Check if there's a going set bonus (players went set last round)
+          if (this.state.nextRoundPotBonus > 0) {
+            // Going set bonus active - ante is automatically 3¢, no choice
+            for (const p of this.state.players.values()) {
+              p.bet = 3; // Fixed ante when players went set
+            }
+            this.state.dealerHasSetAnte = true;
+            this.log(
+              `Bot dealer ${dealer.displayName} - ante fixed at 3¢ (going set bonus active)`
+            );
+          } else {
+            // Normal round - bot dealer auto-sets ante to 3¢ (default)
+            for (const p of this.state.players.values()) {
+              p.bet = 3;
+            }
+            this.state.dealerHasSetAnte = true;
+            this.log(`Bot dealer ${dealer.displayName} auto-set ante to 3¢`);
           }
-          this.state.dealerHasSetAnte = true;
-          this.log(`Bot dealer ${dealer.displayName} auto-set ante to 3¢`);
           this.triggerNewRoundCheck(); // Re-check after setting ante
         }
       }, 1000);

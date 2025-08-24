@@ -39,10 +39,35 @@ export class PlayerActionsComponent {
   allowedAntes = [3, 6, 9, 12, 15];
   @Input() dealerHasSetAnte = false;
 
+  // NEW: Dealer-specific trump keeping info
+  @Input() dealerKeptTrump = false;
+  @Input() dealerTrumpValue = '';
+  @Input() isDealerFinalDiscard = false; // After dealer completed normal discard/draw
+  @Output() dealerGoSet = new EventEmitter<boolean>();
+  @Input() hasGoingSetBonus = false; // Whether there's a going set bonus active
+  @Input() goingSetBonusAmount = 0; // Amount of going set bonus
+
   gameConfig = gameConfig;
 
   get isWaitingForAnteSet(): boolean {
     if (this.isDealer) return false;
     return !this.dealerHasSetAnte;
+  }
+
+  // NEW: Get the dealer's set type based on trump value
+  get dealerSetType(): 'single' | 'double' {
+    if (!this.dealerKeptTrump || !this.dealerTrumpValue) return 'single';
+    const faceCards = ['J', 'Q', 'K', 'A'];
+    return faceCards.includes(this.dealerTrumpValue) ? 'double' : 'single';
+  }
+
+  get dealerPassButtonText(): string {
+    if (!this.isDealer || !this.dealerKeptTrump) return 'Pass';
+    return 'Go Set Single'; // Always single when choosing not to play
+  }
+
+  get dealerFinalDecisionText(): string {
+    if (!this.isDealerFinalDiscard || !this.dealerKeptTrump) return '';
+    return 'Go Set Single'; // Always single when choosing not to play
   }
 }

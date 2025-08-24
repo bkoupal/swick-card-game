@@ -117,27 +117,48 @@ export class PlayerComponent {
       return false; // Player passed - hide their cards
     }
 
-    // If this is not the dealer, always show cards
+    // If this is not the dealer, always show cards (except when they passed)
     if (!this.isDealer) return true;
 
-    // For dealers, hide cards during specific phases until their turn
-    if (
-      this.gameState?.roundState === 'dealing' ||
-      this.gameState?.roundState === 'knock-in' ||
-      this.gameState?.roundState === 'trump-selection'
-    ) {
-      // Show cards if dealer has made their knock decision
-      if (this.player?.hasKnockDecision) return true;
+    // DEALER SWICK VISIBILITY RULES:
+    // Dealer should NEVER see cards during these phases:
+    // - dealing phase
+    // - trump-selection phase
+    // - non-dealer knock-in phase
+    // - non-dealer discard-draw phase
 
-      // Show cards if it's currently dealer's turn to knock
-      if (this.gameState?.currentKnockPlayerId === this.player?.sessionId)
-        return true;
-
-      // Otherwise hide cards during knock-in phase
+    // Hide during dealing phase
+    if (this.gameState?.roundState === 'dealing') {
       return false;
     }
 
-    // Show cards during all other phases (dealing, discard-draw, turns, etc.)
+    // Hide during trump selection phase
+    if (this.gameState?.roundState === 'trump-selection') {
+      return false;
+    }
+
+    // Hide during knock-in phase UNLESS it's dealer's turn to knock
+    if (this.gameState?.roundState === 'knock-in') {
+      // Only show cards if it's currently dealer's turn to knock
+      if (this.gameState?.currentKnockPlayerId === this.player?.sessionId) {
+        return true; // Dealer's turn to knock - show cards!
+      }
+      // Otherwise hide cards during non-dealer knock-in
+      return false;
+    }
+
+    // Hide during discard-draw phase UNLESS it's dealer's turn
+    if (this.gameState?.roundState === 'discard-draw') {
+      // Only show cards if it's dealer's turn to discard
+      if (this.gameState?.currentDiscardPlayerId === this.player?.sessionId) {
+        return true; // Dealer's discard turn - show cards!
+      }
+      // Otherwise hide cards during non-dealer discard-draw
+      return false;
+    }
+
+    // Show cards during all other phases (turns, trick-complete, end, etc.)
+    // Once dealer has seen their cards during knock-in, they keep seeing them
     return true;
   }
 
