@@ -132,6 +132,14 @@ export class GameScreenComponent {
     return (this.game.room?.state as any)?.dealerHasSetAnte || false;
   }
 
+  /**
+   * Calculate the value of each trick (1/3 of the pot)
+   */
+  getTrickValue(): number {
+    const potValue = this.game.room?.state?.potValue || 0;
+    return Math.floor(potValue / 3);
+  }
+
   // GOING SET METHODS
 
   /**

@@ -126,6 +126,13 @@
       Select cards from your hand, then choose:
     </span>
     <button
+      (click)="playCards.emit()"
+      data-cy="dealer-play-cards"
+      class="bg-green-600 hover:bg-green-700"
+    >
+      Play These Cards
+    </button>
+    <button
       (click)="discardDraw.emit()"
       data-cy="dealer-discard-draw"
       [disabled]="selectedCardCount === 0"
@@ -286,9 +293,22 @@
       *ngIf="isDealer || !isWaitingForAnteSet"
       class="flex items-center w-full"
     >
-      <button style="flex-grow: 100" (click)="readyChange.emit(!ready)">
-        {{ ready ? "Not ready" : "Ready" }}
+      <!-- UPDATED: Changed button text and behavior -->
+      <button
+        style="flex-grow: 100"
+        (click)="readyChange.emit(!ready)"
+        *ngIf="!ready"
+      >
+        I'm Ready to Play
       </button>
+
+      <!-- Show a different state when ready - just a status indicator, not clickable -->
+      <div
+        *ngIf="ready"
+        class="flex-grow text-center p-2 font-medium px-3 rounded-md bg-green-600 text-white"
+      >
+        ✓ Ready
+      </div>
     </div>
   </div>
 

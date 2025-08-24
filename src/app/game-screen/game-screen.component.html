@@ -57,6 +57,11 @@
         <!-- Main pot value -->
         <div class="text-lg">💰 Pot: {{ game.room!.state.potValue }}¢</div>
 
+        <!-- Show trick values -->
+        <div class="text-sm text-green-200 mt-1">
+          Each trick: {{ getTrickValue() }}¢
+        </div>
+
         <!-- Going set bonus indicator -->
         <div
           *ngIf="getNextRoundBonus() > 0"
