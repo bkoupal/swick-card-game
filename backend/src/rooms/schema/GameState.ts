@@ -268,6 +268,9 @@ export class GameState extends Schema {
   @type('string') dealerTrumpValue: string = ''; // Value of trump card dealer kept (for set requirements)
   @type('number') nextRoundPotBonus: number = 0; // Extra pot from players who went set
   @type('boolean') dealerHasSetAnte: boolean = false;
+
+  @type('string') specialRoundOutcome: string = '';
+  @type('string') specialRoundMessage: string = '';
 }
 
 export type roundOutcome = 'bust' | 'win' | 'lose' | 'draw' | '';
