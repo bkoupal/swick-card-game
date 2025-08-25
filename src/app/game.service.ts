@@ -246,6 +246,14 @@ export class GameService {
     this.ping();
     this._room.onMessage('ping', () => this.ping());
 
+    this._room.onMessage('everyonePassed', (data) => {
+      console.log(
+        `Everyone passed - ${data.dealerName} wins ${data.potValue}¢`
+      );
+      // The UI will automatically update via the schema changes
+      // You could add a toast notification here if desired using the notifier service
+    });
+
     this.router.navigate(['/room', this._room.id], {
       queryParams: { session: this._room.sessionId },
     });
@@ -260,8 +268,95 @@ export class GameService {
     this.pingTimeout = window.setTimeout(() => {
       this.roomErrorEvent.next('No connection to server');
       this.ping();
-    }, gameConfig.pingInterval * 2);
+    }, gameConfig.pingTimeoutThreshold);
   }
+
+  private setupAutomaticReconnection() {
+    if (!this._room) return;
+
+    this._room.onLeave((code) => {
+      this._room = undefined;
+      window.clearTimeout(this.pingTimeout);
+
+      if (code == gameConfig.kickCode) this.kickEvent.next();
+
+      // Player was kicked or they consented left, delete saved data
+      if (code == gameConfig.kickCode || code == 1000) this.deleteRoomData();
+
+      // Abnormal websocket shutdown - try to reconnect
+      if (code == 1006) {
+        this.roomErrorEvent.next('Lost connection to server');
+
+        // NEW: Attempt automatic reconnection for mobile users
+        this.attemptReconnection();
+      }
+
+      this.router.navigate(['/']);
+    });
+  }
+
+  // Automatic reconnection method
+  private reconnectionAttempts = 0;
+  private maxReconnectionAttempts = 3;
+
+  private async attemptReconnection() {
+    if (this.reconnectionAttempts >= this.maxReconnectionAttempts) {
+      this.roomErrorEvent.next('Unable to reconnect - please refresh');
+      return;
+    }
+
+    this.reconnectionAttempts++;
+    this.roomErrorEvent.next(
+      `Reconnecting... (${this.reconnectionAttempts}/${this.maxReconnectionAttempts})`
+    );
+
+    // Wait 2 seconds before attempting reconnection
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const roomData = this.loadRoomData();
+    if (!roomData) return;
+
+    const reconnected = await this.updateRoom(
+      () => this.client.reconnect(roomData.roomId, roomData.sessionId),
+      false,
+      true
+    );
+
+    if (reconnected) {
+      this.reconnectionAttempts = 0; // Reset counter on successful reconnection
+      this.roomErrorEvent.next('Reconnected successfully!');
+
+      // Clear the success message after 3 seconds
+      setTimeout(() => {
+        if (this._room) {
+          this.roomErrorEvent.next('');
+        }
+      }, 3000);
+    } else {
+      // Try again
+      this.attemptReconnection();
+    }
+  }
+
+  // Add mobile-specific optimizations
+  private setupMobileOptimizations() {
+    // Handle app going to background/foreground on mobile
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this._room) {
+        // App came back to foreground, send a ping to check connection
+        this._room.send('ping');
+      }
+    });
+
+    // Handle network changes (WiFi to cellular, etc.)
+    window.addEventListener('online', () => {
+      if (!this._room) {
+        // Connection came back, try to reconnect
+        this.attemptReconnection();
+      }
+    });
+  }
+
   /**
    * Saves room data to localStorage
    */

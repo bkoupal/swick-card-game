@@ -23,7 +23,12 @@ export default {
   // Websocket Code when player is disconnected by server
   kickCode: 4000,
   roomFullCode: 4444,
-  pingInterval: 5000,
+
+  // IMPROVED: More frequent pings for mobile stability
+  pingInterval: 3000, // Reduced from 5000ms to 3000ms
+
+  // NEW: Add ping timeout threshold
+  pingTimeoutThreshold: 8000, // 8 seconds before showing "Lost connection"
 
   // SWICK-specific configuration
   cardsPerHand: 3, // Each player gets 3 cards

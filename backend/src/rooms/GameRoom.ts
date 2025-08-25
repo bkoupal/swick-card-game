@@ -1363,19 +1363,65 @@ export class GameRoom extends Room<GameState> {
     const nonDealers = [...this.state.players.values()].filter(
       (p) => p.ready && p.sessionId !== this.state.dealerId
     );
-    const playersIn = nonDealers.filter((p) => p.knockedIn);
+    const nonDealersIn = nonDealers.filter((p) => p.knockedIn);
 
-    this.log(`Non-dealer players knocked in: ${playersIn.length}`);
+    this.log(`Non-dealer players knocked in: ${nonDealersIn.length}`);
 
-    if (playersIn.length === 0) {
-      // No non-dealers knocked in - end the hand, pot carries over
-      this.log(`No non-dealers knocked in - ending hand`);
-      this.endRound();
-    } else {
-      // Start discard/draw phase for non-dealers only
-      this.log(`Starting discard/draw phase for non-dealers`);
-      this.startDiscardDrawPhase();
+    if (nonDealersIn.length === 0) {
+      // ✅ FIXED: No non-dealers knocked in - DEALER WINS AUTOMATICALLY
+      this.log(`No non-dealers knocked in - dealer wins automatically`);
+      this.handleDealerAutoWin();
+      return;
     }
+
+    // Some non-dealers knocked in, continue with normal flow
+    // Now dealer gets to make knock decision
+    this.state.roundState = 'knock-in';
+    this.state.currentKnockPlayerId = this.state.dealerId;
+
+    this.log(`Dealer's turn to knock`);
+    this.setInactivitySkipTimeout();
+
+    // Trigger bot decisions if next player is a bot
+    this.triggerBotDecisions();
+  }
+
+  // Handle dealer automatic win when all players pass
+  private handleDealerAutoWin() {
+    this.log(
+      `Everyone passed - dealer wins entire pot of ${this.state.potValue}¢`
+    );
+
+    const dealer = this.state.players.get(this.state.dealerId);
+    if (!dealer) {
+      this.log(`Error: No dealer found`);
+      this.endRound();
+      return;
+    }
+
+    // Dealer automatically wins the entire pot
+    dealer.knockedIn = true;
+    dealer.hasKnockDecision = true;
+    dealer.tricksWon = 3; // Award all 3 tricks symbolically
+    dealer.roundOutcome = 'win';
+
+    this.log(
+      `Dealer ${dealer.displayName} wins ${this.state.potValue}¢ - everyone passed`
+    );
+
+    // Broadcast special message to all players
+    this.broadcast('everyonePassed', {
+      dealerName: dealer.displayName,
+      potValue: this.state.potValue,
+      message: `Everyone passed. ${dealer.displayName} wins the pot!`,
+    });
+
+    // Set a special round outcome for the end screen
+    this.state.specialRoundOutcome = 'dealer-auto-win';
+    this.state.specialRoundMessage = `Everyone passed. ${dealer.displayName} wins ${this.state.potValue}¢!`;
+
+    // End the round immediately
+    this.endRound();
   }
 
   private checkAllKnockDecisions() {
@@ -1395,9 +1441,9 @@ export class GameRoom extends Room<GameState> {
       this.log(`Players knocked in: ${playersIn.length}`);
 
       if (playersIn.length === 0) {
-        // Nobody knocked in - end the hand, pot carries over
-        this.log(`No players knocked in - ending hand`);
-        this.endRound();
+        // ✅ FIXED: Nobody knocked in - dealer wins automatically
+        this.log(`No players knocked in - dealer wins automatically`);
+        this.handleDealerAutoWin();
       } else {
         // Start the discard/draw phase
         this.log(`Starting discard/draw phase`);
@@ -1656,6 +1702,9 @@ export class GameRoom extends Room<GameState> {
 
     // Clear ante data
     this.state.dealerHasSetAnte = false;
+
+    this.state.specialRoundOutcome = '';
+    this.state.specialRoundMessage = '';
 
     // Reset all players for next hand
     for (const player of this.state.players.values()) {

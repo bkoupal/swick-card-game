@@ -289,6 +289,34 @@
       </div>
     </div>
 
+    <!-- Everyone Passed Announcement (NEW) -->
+    <div
+      *ngIf="shouldShowEveryonePassedMessage()"
+      class="absolute left-1/2 transform -translate-x-1/2 z-30"
+      style="top: 35%"
+    >
+      <div class="everyone-passed-announcement text-center">
+        <!-- Title -->
+        <div
+          class="bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold text-2xl px-6 py-3 rounded-lg shadow-lg mb-4"
+        >
+          🏆 DEALER WINS! 🏆
+        </div>
+
+        <!-- Message -->
+        <div
+          class="bg-gray-900 bg-opacity-90 text-white px-6 py-4 rounded-lg shadow-xl"
+        >
+          <div class="text-xl font-bold text-blue-400 mb-2">
+            Everyone Passed
+          </div>
+          <div class="text-lg text-green-400">
+            {{ game.room!.state.specialRoundMessage }}
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Going Set Results Announcement (NEW) -->
     <div
       *ngIf="shouldShowGoingSetResults()"

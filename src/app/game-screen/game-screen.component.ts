@@ -188,4 +188,14 @@ export class GameScreenComponent {
   getNextRoundBonus(): number {
     return this.game.room?.state.nextRoundPotBonus || 0;
   }
+
+  /**
+   * Should we show the "everyone passed" message?
+   */
+  shouldShowEveryonePassedMessage(): boolean {
+    return (
+      this.game.room?.state.roundState === 'end' &&
+      this.game.room?.state.specialRoundOutcome === 'dealer-auto-win'
+    );
+  }
 }
