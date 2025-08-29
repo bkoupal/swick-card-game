@@ -1332,22 +1332,17 @@ export class GameRoom extends Room<GameState> {
   }
 
   private startNextKnockTurn() {
-    // Get NON-DEALER players who need to make a knock decision
-    const activePlayers = [...this.state.players.values()].filter(
-      (p) => p.ready
-    );
+    // Get NON-DEALER players in CLOCKWISE order from dealer's left
+    const nonDealersClockwise = this.getNonDealersInClockwiseOrder();
 
-    // Only non-dealers participate in initial knock-in phase
-    const nonDealers = activePlayers.filter(
-      (p) => p.sessionId !== this.state.dealerId
-    );
-
-    // Find next non-dealer who hasn't made decision yet
-    const nextPlayer = nonDealers.find((p) => !p.hasKnockDecision);
+    // Find next non-dealer who hasn't made decision yet (maintaining clockwise order)
+    const nextPlayer = nonDealersClockwise.find((p) => !p.hasKnockDecision);
 
     if (nextPlayer) {
       this.state.currentKnockPlayerId = nextPlayer.sessionId;
-      this.log(`It's ${nextPlayer.displayName}'s turn to knock`);
+      this.log(
+        `It's ${nextPlayer.displayName}'s turn to knock (clockwise order)`
+      );
       this.setInactivitySkipTimeout();
 
       // Trigger bot decisions if next player is a bot
@@ -1368,22 +1363,18 @@ export class GameRoom extends Room<GameState> {
     this.log(`Non-dealer players knocked in: ${nonDealersIn.length}`);
 
     if (nonDealersIn.length === 0) {
-      // ✅ FIXED: No non-dealers knocked in - DEALER WINS AUTOMATICALLY
+      // ✅ No non-dealers knocked in - DEALER WINS AUTOMATICALLY
       this.log(`No non-dealers knocked in - dealer wins automatically`);
       this.handleDealerAutoWin();
       return;
     }
 
-    // Some non-dealers knocked in, continue with normal flow
-    // Now dealer gets to make knock decision
-    this.state.roundState = 'knock-in';
-    this.state.currentKnockPlayerId = this.state.dealerId;
-
-    this.log(`Dealer's turn to knock`);
-    this.setInactivitySkipTimeout();
-
-    // Trigger bot decisions if next player is a bot
-    this.triggerBotDecisions();
+    // ✅ FIX: Some non-dealers knocked in, START DISCARD/DRAW PHASE FIRST
+    // Don't immediately ask dealer to knock - let non-dealers discard/draw first
+    this.log(
+      `${nonDealersIn.length} non-dealers knocked in - starting discard/draw phase`
+    );
+    this.startDiscardDrawPhase();
   }
 
   // Handle dealer automatic win when all players pass
@@ -1475,43 +1466,102 @@ export class GameRoom extends Room<GameState> {
   }
 
   private startNextDiscardTurn() {
-    // Get NON-DEALER knocked-in players who need to make discard decisions
-    const knockedInNonDealers = [...this.state.players.values()].filter(
-      (p) => p.ready && p.knockedIn && p.sessionId !== this.state.dealerId
+    // Get NON-DEALER knocked-in players in CLOCKWISE order from dealer's left
+    const nonDealersClockwise = this.getNonDealersInClockwiseOrder();
+    const knockedInNonDealersClockwise = nonDealersClockwise.filter(
+      (p) => p.knockedIn
     );
 
-    // Find next non-dealer who hasn't made discard decision yet
-    const nextPlayer = knockedInNonDealers.find((p) => !p.hasDiscardDecision);
+    // Find next non-dealer who hasn't made discard decision yet (maintaining clockwise order)
+    const nextPlayer = knockedInNonDealersClockwise.find(
+      (p) => !p.hasDiscardDecision
+    );
 
     if (nextPlayer) {
       this.state.currentDiscardPlayerId = nextPlayer.sessionId;
-      this.log(`It's ${nextPlayer.displayName}'s turn to discard/draw`);
+      this.log(
+        `It's ${nextPlayer.displayName}'s turn to discard/draw (clockwise order)`
+      );
       this.setInactivitySkipTimeout();
 
       // Trigger bot decisions if next player is a bot
       this.triggerBotDecisions();
     } else {
-      // All non-dealers have made discard decisions
+      // ✅ FIX: All non-dealers have made discard decisions
+      // NOW we ask the dealer to make their knock decision
       this.state.currentDiscardPlayerId = '';
 
-      // Check if we're in dealer's discard phase
       const dealer = this.state.players.get(this.state.dealerId);
-      if (dealer && dealer.knockedIn && !dealer.hasDiscardDecision) {
-        // Dealer has knocked in but hasn't made discard decision yet
-        this.state.currentDiscardPlayerId = this.state.dealerId;
-        this.log(`Dealer's turn to discard/draw`);
+      if (!dealer) {
+        this.log(`Error: No dealer found`);
+        this.endRound();
+        return;
+      }
+
+      // Check if dealer has already made knock decision
+      if (!dealer.hasKnockDecision) {
+        // ✅ FIX: Now ask dealer to knock in (after non-dealers finished discard/draw)
+        this.log(
+          `Non-dealers finished discard/draw - now dealer's turn to knock`
+        );
+        this.state.roundState = 'knock-in';
+        this.state.currentKnockPlayerId = this.state.dealerId;
         this.setInactivitySkipTimeout();
+
+        // Trigger bot decisions if dealer is a bot
+        this.triggerBotDecisions();
       } else {
-        // Either dealer hasn't knocked in yet, or all discard decisions are complete
-        if (!dealer.hasKnockDecision) {
-          // Dealer hasn't made knock decision yet
-          this.startDealerDecisionPhase();
+        // Dealer already made knock decision, check if they knocked in
+        if (dealer.knockedIn && !dealer.hasDiscardDecision) {
+          // Dealer knocked in but hasn't made discard decision yet
+          this.log(`Dealer's turn to discard/draw`);
+          this.state.currentDiscardPlayerId = this.state.dealerId;
+          this.setInactivitySkipTimeout();
+
+          // Trigger bot decisions if dealer is a bot
+          this.triggerBotDecisions();
         } else {
           // All decisions complete, start trick-taking
+          this.log(
+            `All discard decisions complete - starting trick-taking phase`
+          );
           this.startTrickTakingPhase();
         }
       }
     }
+  }
+
+  /**
+   * Gets non-dealer players in clockwise order starting from dealer's left
+   */
+  private getNonDealersInClockwiseOrder(): Player[] {
+    // Get all ready players
+    const allPlayers = [...this.state.players.values()].filter((p) => p.ready);
+
+    // Find dealer's position in the array
+    const dealerIndex = allPlayers.findIndex(
+      (p) => p.sessionId === this.state.dealerId
+    );
+
+    if (dealerIndex === -1) {
+      this.log(`Error: Dealer not found in ready players`);
+      return [];
+    }
+
+    // Create clockwise order starting from dealer's left
+    const clockwiseOrder = [];
+    for (let i = 1; i < allPlayers.length; i++) {
+      const playerIndex = (dealerIndex + i) % allPlayers.length;
+      clockwiseOrder.push(allPlayers[playerIndex]);
+    }
+
+    this.log(
+      `Clockwise order from dealer's left: ${clockwiseOrder
+        .map((p) => p.displayName)
+        .join(' -> ')}`
+    );
+
+    return clockwiseOrder;
   }
 
   private startDealerDecisionPhase() {
