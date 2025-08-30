@@ -11,6 +11,7 @@ export interface GameSetup {
   playerTypes: ('human' | 'bot')[];
   botDifficulty: 'easy' | 'medium' | 'hard';
   playerName: string;
+  isPrivate?: boolean;
 }
 
 @Injectable({
@@ -59,14 +60,15 @@ export class GameService {
         this.client.create('gameRoom', {
           playerName: gameSetup.playerName,
           gameSetup: gameSetup,
-          roomName: `${gameSetup.playerName}'s Game`,
-          isPublic: true, // Make bot rooms public so they appear in lobby
+          roomName: gameSetup.isPrivate
+            ? `${gameSetup.playerName}'s Private Game`
+            : `${gameSetup.playerName}'s Game`,
+          isPublic: !gameSetup.isPrivate, // Invert the private flag
           maxPlayers: gameSetup.totalPlayers,
         }),
       true
     );
   }
-
   // Also ensure your regular createRoom method signature is updated:
   public createRoom(
     playerName: string = 'Player',
@@ -87,16 +89,7 @@ export class GameService {
 
   // And make sure createPublicRoom is consistent:
   public createPublicRoom(playerName: string = 'Player', roomName?: string) {
-    return this.updateRoom(
-      () =>
-        this.client.create('gameRoom', {
-          playerName: playerName,
-          roomName: roomName || `${playerName}'s Game`,
-          isPublic: true,
-          maxPlayers: 6,
-        }),
-      true
-    );
+    return this.createRoom(playerName, true, roomName);
   }
 
   public joinRoom(id: string, playerName: string = 'Player') {

@@ -1,4 +1,5 @@
-// src/app/lobby/lobby.component.ts
+// src/app/lobby/lobby.component.ts - UPDATED with helper method
+
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { LobbyService, RoomListingData } from '../lobby.service';
@@ -26,6 +27,9 @@ export class LobbyComponent implements OnInit, OnDestroy {
   totalPlayers = 3;
   playerTypes: ('human' | 'bot')[] = ['human', 'human']; // For players 2-6 (player 1 is always human)
   botDifficulty: 'easy' | 'medium' | 'hard' = 'easy';
+
+  // ADD PRIVATE GAME OPTION
+  isPrivateGame = false;
 
   constructor(
     private lobbyService: LobbyService,
@@ -75,12 +79,14 @@ export class LobbyComponent implements OnInit, OnDestroy {
         room.roomId,
         this.playerName.value.trim()
       );
-    } catch (error) {
-      this.error = 'Failed to join room';
+    } catch (error: any) {
+      console.error('Join room error:', error);
+      this.error = error?.message || 'Failed to join room';
       this.isLoading = false;
     }
   }
 
+  // UPDATED: Quick Game now respects private setting
   async createRoom(): Promise<void> {
     if (!this.playerName.value?.trim()) {
       this.error = 'Please enter a player name';
@@ -89,16 +95,23 @@ export class LobbyComponent implements OnInit, OnDestroy {
 
     try {
       this.isLoading = true;
-      await this.gameService.createPublicRoom(
+
+      // Use the unified createRoom method with privacy setting
+      await this.gameService.createRoom(
         this.playerName.value.trim(),
-        `${this.playerName.value.trim()}'s Game`
+        !this.isPrivateGame, // isPublic = !isPrivate
+        this.isPrivateGame
+          ? `${this.playerName.value.trim()}'s Private Game`
+          : `${this.playerName.value.trim()}'s Game`
       );
-    } catch (error) {
-      this.error = 'Failed to create room';
+    } catch (error: any) {
+      console.error('Create room error:', error);
+      this.error = error?.message || 'Failed to create room';
       this.isLoading = false;
     }
   }
 
+  // UPDATED: Advanced room creation respects private setting
   async createAdvancedRoom(): Promise<void> {
     if (!this.playerName.value?.trim()) {
       this.error = 'Please enter a player name';
@@ -113,23 +126,28 @@ export class LobbyComponent implements OnInit, OnDestroy {
         playerTypes: this.playerTypes,
         botDifficulty: this.botDifficulty,
         playerName: this.playerName.value.trim(),
+        isPrivate: this.isPrivateGame, // ADD THIS
       };
 
       // Check if any bots are selected
       const hasBots = this.hasAnyBots();
 
       if (hasBots) {
-        // Create room with bot configuration
+        // Create room with bot configuration (handles private flag internally)
         await this.gameService.createRoomWithBots(gameSetup);
       } else {
-        // Create regular public room
-        await this.gameService.createPublicRoom(
+        // Create regular room using unified createRoom method
+        await this.gameService.createRoom(
           gameSetup.playerName,
-          `${gameSetup.playerName}'s Game`
+          !this.isPrivateGame, // isPublic = !isPrivate
+          this.isPrivateGame
+            ? `${gameSetup.playerName}'s Private Game`
+            : `${gameSetup.playerName}'s Game`
         );
       }
-    } catch (error) {
-      this.error = 'Failed to create room';
+    } catch (error: any) {
+      console.error('Create advanced room error:', error);
+      this.error = error?.message || 'Failed to create room';
       this.isLoading = false;
     }
   }
@@ -140,6 +158,11 @@ export class LobbyComponent implements OnInit, OnDestroy {
 
   getJoinErrorMessage(room: RoomListingData): string | null {
     return this.lobbyService.getJoinErrorMessage(room);
+  }
+
+  // ADDED: Helper method for status class
+  getStatusClass(gameStatus: string): string {
+    return 'status-' + gameStatus.toLowerCase().replace(/\s+/g, '-');
   }
 
   generateRandomName(): void {
@@ -177,33 +200,19 @@ export class LobbyComponent implements OnInit, OnDestroy {
     this.showAdvancedCreation = !this.showAdvancedCreation;
   }
 
-  // Advanced game creation methods
+  // Helper methods for advanced creation
+  setTotalPlayers(count: number): void {
+    this.totalPlayers = count;
+    // Adjust playerTypes array to match
+    this.playerTypes = Array(count - 1).fill('human');
+  }
+
   getPlayerSlots(): number[] {
-    // Return array for players 2 through totalPlayers
     return Array.from({ length: this.totalPlayers - 1 }, (_, i) => i + 1);
   }
 
-  setTotalPlayers(count: number): void {
-    this.totalPlayers = count;
-
-    // Adjust playerTypes array to match new total
-    const slotsNeeded = count - 1; // Player 1 is always human
-
-    if (this.playerTypes.length < slotsNeeded) {
-      // Add more slots, default to human
-      while (this.playerTypes.length < slotsNeeded) {
-        this.playerTypes.push('human');
-      }
-    } else if (this.playerTypes.length > slotsNeeded) {
-      // Remove extra slots
-      this.playerTypes = this.playerTypes.slice(0, slotsNeeded);
-    }
-  }
-
-  setPlayerType(slotIndex: number, type: 'human' | 'bot'): void {
-    if (slotIndex >= 0 && slotIndex < this.playerTypes.length) {
-      this.playerTypes[slotIndex] = type;
-    }
+  setPlayerType(index: number, type: 'human' | 'bot'): void {
+    this.playerTypes[index] = type;
   }
 
   setBotDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
@@ -215,20 +224,34 @@ export class LobbyComponent implements OnInit, OnDestroy {
   }
 
   getGameSummary(): string {
-    const humanCount =
-      this.playerTypes.filter((type) => type === 'human').length + 1; // +1 for player 1
-    const botCount = this.playerTypes.filter((type) => type === 'bot').length;
+    const humanCount = this.playerTypes.filter((t) => t === 'human').length + 1; // +1 for you
+    const botCount = this.playerTypes.filter((t) => t === 'bot').length;
 
-    if (botCount === 0) {
-      return `${humanCount} human players`;
-    } else if (humanCount === 1) {
-      return `You vs ${botCount} ${this.botDifficulty} bot${
-        botCount > 1 ? 's' : ''
-      }`;
-    } else {
-      return `${humanCount} humans + ${botCount} ${this.botDifficulty} bot${
-        botCount > 1 ? 's' : ''
+    let summary = `${this.totalPlayers} players total: ${humanCount} human${
+      humanCount === 1 ? '' : 's'
+    }`;
+    if (botCount > 0) {
+      summary += `, ${botCount} ${this.botDifficulty} bot${
+        botCount === 1 ? '' : 's'
       }`;
     }
+
+    if (this.isPrivateGame) {
+      summary += ' (Private Game)';
+    }
+
+    return summary;
+  }
+
+  // HELPER METHOD FOR BETTER ERROR DISPLAY
+  getQuickGameDescription(): string {
+    if (this.isPrivateGame) {
+      return "Create a private game for friends (won't appear in public lobby)";
+    }
+    return 'Create a public game that others can join from the lobby';
+  }
+
+  getAdvancedOptionsDescription(): string {
+    return 'Configure game settings, add bots, and set privacy options';
   }
 }

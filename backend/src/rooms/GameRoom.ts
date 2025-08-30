@@ -171,6 +171,7 @@ export class GameRoom extends Room<GameState> {
       gameStatus: this.state.roomMetadata.gameStatus,
       dealerName: this.state.roomMetadata.dealerName,
       hasActiveSet: this.state.roomMetadata.hasActiveSet,
+      maxClients: this.state.roomMetadata.maxPlayers, // ADD THIS for proper client display
     });
 
     //Send ping messages to all clients
@@ -213,6 +214,7 @@ export class GameRoom extends Room<GameState> {
       this.log(`Ready state change: ${state}`, client);
       player.ready = state;
       this.triggerNewRoundCheck();
+      this.updateRoomMetadata();
     });
 
     this.onMessage('autoReady', (client, state: boolean) => {
@@ -846,7 +848,6 @@ export class GameRoom extends Room<GameState> {
 
     this.triggerRoomDeleteCheck();
     this.triggerNewRoundCheck();
-    this.updateRoomMetadata();
 
     this.setMetadata({
       roomName: this.state.roomMetadata.roomName,
@@ -859,6 +860,8 @@ export class GameRoom extends Room<GameState> {
       dealerName: this.state.roomMetadata.dealerName,
       hasActiveSet: this.state.roomMetadata.hasActiveSet,
     });
+
+    this.updateRoomMetadata();
   }
 
   private createBots(): void {
@@ -1077,8 +1080,6 @@ export class GameRoom extends Room<GameState> {
       }
     } catch (error) {}
 
-    this.updateRoomMetadata();
-
     this.setMetadata({
       roomName: this.state.roomMetadata.roomName,
       isPublic: this.state.roomMetadata.isPublic,
@@ -1090,6 +1091,8 @@ export class GameRoom extends Room<GameState> {
       dealerName: this.state.roomMetadata.dealerName,
       hasActiveSet: this.state.roomMetadata.hasActiveSet,
     });
+
+    this.updateRoomMetadata();
   }
 
   onDispose() {
@@ -3174,10 +3177,10 @@ export class GameRoom extends Room<GameState> {
    */
   private updateRoomMetadata() {
     const activePlayers = [...this.state.players.values()].filter(
-      (p) => p.ready || !p.disconnected
+      (p) => !p.disconnected
     );
     const readyPlayers = [...this.state.players.values()].filter(
-      (p) => p.ready
+      (p) => p.ready && !p.disconnected
     );
     const dealer = this.state.players.get(this.state.dealerId);
     const hasActiveSet = [...this.state.players.values()].some(
@@ -3190,46 +3193,75 @@ export class GameRoom extends Room<GameState> {
     this.state.roomMetadata.dealerName = dealer?.displayName || '';
     this.state.roomMetadata.hasActiveSet = hasActiveSet;
 
-    // Update game status based on round state
+    // IMPROVED: Better game status based on round state and player count
     switch (this.state.roundState) {
       case 'idle':
-        this.state.roomMetadata.gameStatus = 'Waiting for Players';
+        if (activePlayers.length < gameConfig.minPlayers) {
+          this.state.roomMetadata.gameStatus = 'Waiting for Players';
+        } else if (readyPlayers.length < activePlayers.length) {
+          this.state.roomMetadata.gameStatus = 'Players Getting Ready';
+        } else {
+          this.state.roomMetadata.gameStatus = 'Starting Game';
+        }
         this.state.roomMetadata.allowJoining = true;
         break;
+
       case 'dealing':
-      case 'trump-selection':
-        this.state.roomMetadata.gameStatus = 'Setting Up';
+        this.state.roomMetadata.gameStatus = 'Dealing Cards';
         this.state.roomMetadata.allowJoining = false;
         break;
+
+      case 'trump-selection':
+        this.state.roomMetadata.gameStatus = 'Dealer Choosing Trump';
+        this.state.roomMetadata.allowJoining = false;
+        break;
+
       case 'knock-in':
         this.state.roomMetadata.gameStatus = 'Players Deciding';
         this.state.roomMetadata.allowJoining = false;
         break;
+
       case 'discard-draw':
         this.state.roomMetadata.gameStatus = 'Drawing Cards';
         this.state.roomMetadata.allowJoining = false;
         break;
+
       case 'turns':
         this.state.roomMetadata.gameStatus = 'Playing Tricks';
         this.state.roomMetadata.allowJoining = false;
         break;
+
       case 'end':
-        this.state.roomMetadata.gameStatus = hasActiveSet
-          ? 'Someone Went Set!'
-          : 'Hand Complete';
-        this.state.roomMetadata.allowJoining = !hasActiveSet; // Can't join if there's an active set
+        if (hasActiveSet) {
+          this.state.roomMetadata.gameStatus = 'Someone Went Set!';
+          this.state.roomMetadata.allowJoining = false; // Can't join if someone went set
+        } else {
+          this.state.roomMetadata.gameStatus = 'Hand Complete';
+          this.state.roomMetadata.allowJoining = true; // Can join between hands
+        }
         break;
+
       default:
         this.state.roomMetadata.gameStatus = 'In Progress';
         this.state.roomMetadata.allowJoining = false;
     }
 
     // Don't allow joining if room is full
-    if (
-      this.state.roomMetadata.currentPlayers >=
-      this.state.roomMetadata.maxPlayers
-    ) {
+    if (activePlayers.length >= this.state.roomMetadata.maxPlayers) {
       this.state.roomMetadata.allowJoining = false;
     }
+    // IMPORTANT: Always update the Colyseus metadata for lobby
+    this.setMetadata({
+      roomName: this.state.roomMetadata.roomName,
+      isPublic: this.state.roomMetadata.isPublic,
+      allowJoining: this.state.roomMetadata.allowJoining,
+      currentPlayers: this.state.roomMetadata.currentPlayers,
+      readyPlayers: this.state.roomMetadata.readyPlayers,
+      potValue: this.state.roomMetadata.potValue,
+      gameStatus: this.state.roomMetadata.gameStatus,
+      dealerName: this.state.roomMetadata.dealerName,
+      hasActiveSet: this.state.roomMetadata.hasActiveSet,
+      maxClients: this.state.roomMetadata.maxPlayers, // ADD THIS for proper client display
+    });
   }
 }

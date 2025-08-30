@@ -490,3 +490,130 @@
     stroke: white !important;
   }
 }
+/* src/app/lobby/lobby.component.scss - ADD THESE STYLES */
+
+.player-setup {
+  // ... existing styles ...
+
+  // ADD PRIVACY SECTION STYLES
+  .privacy-section {
+    margin-bottom: 20px;
+    text-align: center;
+
+    .private-toggle {
+      margin-bottom: 8px;
+
+      .toggle-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+
+        mat-icon {
+          font-size: 1.2rem;
+          width: 1.2rem;
+          height: 1.2rem;
+        }
+      }
+    }
+
+    .privacy-description {
+      font-size: 0.9rem;
+      margin: 8px 0 0 0;
+      opacity: 0.8;
+      color: rgba(255, 255, 255, 0.7);
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.3;
+    }
+  }
+
+  // ... rest of existing styles ...
+}
+
+// ENHANCED ROOM STATUS STYLES
+.room-status {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  // Status color coding
+  &.status-waiting-for-players {
+    background-color: #4caf50;
+    color: white;
+  }
+
+  &.status-setting-up {
+    background-color: #ff9800;
+    color: white;
+  }
+
+  &.status-players-deciding {
+    background-color: #2196f3;
+    color: white;
+  }
+
+  &.status-drawing-cards {
+    background-color: #9c27b0;
+    color: white;
+  }
+
+  &.status-playing-tricks {
+    background-color: #e91e63;
+    color: white;
+  }
+
+  &.status-hand-complete {
+    background-color: #607d8b;
+    color: white;
+  }
+
+  &.status-someone-went-set {
+    background-color: #f44336;
+    color: white;
+    animation: pulse 2s infinite;
+  }
+
+  &.status-in-progress {
+    background-color: #795548;
+    color: white;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+  }
+}
+
+// IMPROVED ERROR DISPLAY
+.error-display {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #f44336;
+
+  mat-icon {
+    color: #f44336;
+  }
+
+  span {
+    font-weight: 500;
+  }
+}

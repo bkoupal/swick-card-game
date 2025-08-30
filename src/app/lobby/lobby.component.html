@@ -1,4 +1,4 @@
-<!-- src/app/lobby/lobby.component.html -->
+<!-- src/app/lobby/lobby.component.html - FIXED VERSION -->
 <div class="lobby-container">
   <div class="lobby-header">
     <h1 class="lobby-title">SWICK Game Lobby</h1>
@@ -27,6 +27,24 @@
       </mat-form-field>
     </div>
 
+    <!-- FIXED: Private Game Toggle -->
+    <div class="privacy-section">
+      <mat-slide-toggle
+        [checked]="isPrivateGame"
+        (change)="isPrivateGame = $event.checked"
+        class="private-toggle"
+        color="accent"
+      >
+        <span class="toggle-label">
+          <mat-icon>{{ isPrivateGame ? "lock" : "public" }}</mat-icon>
+          {{ isPrivateGame ? "Private Game" : "Public Game" }}
+        </span>
+      </mat-slide-toggle>
+      <p class="privacy-description">
+        {{ getQuickGameDescription() }}
+      </p>
+    </div>
+
     <!-- Quick Create Section -->
     <div class="create-section">
       <button
@@ -36,14 +54,15 @@
         [disabled]="isLoading || playerName.invalid"
         class="create-btn quick-create"
       >
-        <mat-icon>add</mat-icon>
-        Quick Game
+        <mat-icon>{{ isPrivateGame ? "lock" : "add" }}</mat-icon>
+        {{ isPrivateGame ? "Create Private Game" : "Quick Game" }}
       </button>
 
       <button
         mat-button
         (click)="toggleAdvancedCreation()"
         class="toggle-advanced"
+        [matTooltip]="getAdvancedOptionsDescription()"
       >
         <mat-icon>{{
           showAdvancedCreation ? "expand_less" : "expand_more"
@@ -156,8 +175,10 @@
         [disabled]="isLoading || playerName.invalid"
         class="create-btn advanced-create"
       >
-        <mat-icon>rocket_launch</mat-icon>
-        Create Custom Game
+        <mat-icon>{{ isPrivateGame ? "lock" : "rocket_launch" }}</mat-icon>
+        {{
+          isPrivateGame ? "Create Private Custom Game" : "Create Custom Game"
+        }}
       </button>
     </div>
   </div>
@@ -201,10 +222,7 @@
           <span class="room-id">ID: {{ room.roomId }}</span>
           <span
             class="room-status"
-            [class]="
-              'status-' +
-              room.metadata.gameStatus.toLowerCase().replace(' ', '-')
-            "
+            [ngClass]="getStatusClass(room.metadata.gameStatus)"
           >
             {{ room.metadata.gameStatus }}
           </span>
@@ -212,10 +230,11 @@
 
         <!-- Room Details -->
         <div class="room-details">
+          <!-- FIXED: Player count display -->
           <div class="detail-item">
             <mat-icon>people</mat-icon>
             <span
-              >{{ room.metadata.currentPlayers }}/{{
+              >{{ room.metadata.currentPlayers || room.clients }}/{{
                 room.maxClients
               }}
               players</span
