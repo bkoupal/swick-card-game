@@ -7,6 +7,7 @@ import {
   Suit,
   Value,
 } from './cardValues';
+import { RoomMetadata } from './RoomMetadata';
 
 /**
  * Represents the value (suit and value) of a single card
@@ -271,6 +272,8 @@ export class GameState extends Schema {
 
   @type('string') specialRoundOutcome: string = '';
   @type('string') specialRoundMessage: string = '';
+
+  @type(RoomMetadata) roomMetadata = new RoomMetadata();
 }
 
 export type roundOutcome = 'bust' | 'win' | 'lose' | 'draw' | '';

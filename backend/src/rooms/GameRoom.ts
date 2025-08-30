@@ -142,13 +142,36 @@ export class GameRoom extends Room<GameState> {
     return new Promise((resolve) => this.clock.setTimeout(resolve, ms));
   }
 
-  async onCreate() {
+  async onCreate(options: any) {
     this.roomId = await this.registerRoomId();
-    this.setPrivate();
+    if (!options.isPublic) {
+      this.setPrivate();
+    }
     this.setState(new GameState({}));
     this.clock.start();
 
     this.log('Created');
+
+    // ADD THESE LINES HERE (at the beginning of onCreate):
+    this.state.roomMetadata.roomName =
+      options?.roomName || `SWICK Game ${this.roomId}`;
+    this.state.roomMetadata.isPublic = options?.isPublic !== false;
+    this.state.roomMetadata.maxPlayers = options?.maxPlayers || 6;
+
+    this.updateRoomMetadata();
+
+    // Enable lobby listing
+    this.setMetadata({
+      roomName: this.state.roomMetadata.roomName,
+      isPublic: this.state.roomMetadata.isPublic,
+      allowJoining: this.state.roomMetadata.allowJoining,
+      currentPlayers: this.state.roomMetadata.currentPlayers,
+      readyPlayers: this.state.roomMetadata.readyPlayers,
+      potValue: this.state.roomMetadata.potValue,
+      gameStatus: this.state.roomMetadata.gameStatus,
+      dealerName: this.state.roomMetadata.dealerName,
+      hasActiveSet: this.state.roomMetadata.hasActiveSet,
+    });
 
     //Send ping messages to all clients
     this.clock.setInterval(() => {
@@ -776,6 +799,15 @@ export class GameRoom extends Room<GameState> {
   }
 
   onJoin(client: Client, options: any) {
+    // Check if joining is allowed
+    if (!this.state.roomMetadata.allowJoining) {
+      throw new Error('Cannot join: Game in progress or has active set');
+    }
+
+    if (this.state.players.size >= this.state.roomMetadata.maxPlayers) {
+      throw new Error('Room is full');
+    }
+
     this.log(`Join`, client);
 
     // Store game setup from room creator
@@ -814,6 +846,19 @@ export class GameRoom extends Room<GameState> {
 
     this.triggerRoomDeleteCheck();
     this.triggerNewRoundCheck();
+    this.updateRoomMetadata();
+
+    this.setMetadata({
+      roomName: this.state.roomMetadata.roomName,
+      isPublic: this.state.roomMetadata.isPublic,
+      allowJoining: this.state.roomMetadata.allowJoining,
+      currentPlayers: this.state.roomMetadata.currentPlayers,
+      readyPlayers: this.state.roomMetadata.readyPlayers,
+      potValue: this.state.roomMetadata.potValue,
+      gameStatus: this.state.roomMetadata.gameStatus,
+      dealerName: this.state.roomMetadata.dealerName,
+      hasActiveSet: this.state.roomMetadata.hasActiveSet,
+    });
   }
 
   private createBots(): void {
@@ -1031,6 +1076,20 @@ export class GameRoom extends Room<GameState> {
         this.triggerNewRoundCheck();
       }
     } catch (error) {}
+
+    this.updateRoomMetadata();
+
+    this.setMetadata({
+      roomName: this.state.roomMetadata.roomName,
+      isPublic: this.state.roomMetadata.isPublic,
+      allowJoining: this.state.roomMetadata.allowJoining,
+      currentPlayers: this.state.roomMetadata.currentPlayers,
+      readyPlayers: this.state.roomMetadata.readyPlayers,
+      potValue: this.state.roomMetadata.potValue,
+      gameStatus: this.state.roomMetadata.gameStatus,
+      dealerName: this.state.roomMetadata.dealerName,
+      hasActiveSet: this.state.roomMetadata.hasActiveSet,
+    });
   }
 
   onDispose() {
@@ -1303,6 +1362,7 @@ export class GameRoom extends Room<GameState> {
     await this.delay(gameConfig.roundStateDealingTime);
 
     this.startTrumpSelectionPhase();
+    this.updateRoomMetadata();
   }
 
   private startTrumpSelectionPhase() {
@@ -1782,6 +1842,7 @@ export class GameRoom extends Room<GameState> {
     this.log(`Starting idle phase`);
     this.state.roundState = 'idle';
     this.triggerNewRoundCheck();
+    this.updateRoomMetadata();
   }
 
   /**
@@ -3106,5 +3167,69 @@ export class GameRoom extends Room<GameState> {
     if (isFace) return Math.random() > 0.6;
 
     return Math.random() > 0.8;
+  }
+
+  /**
+   * Updates room metadata for lobby display
+   */
+  private updateRoomMetadata() {
+    const activePlayers = [...this.state.players.values()].filter(
+      (p) => p.ready || !p.disconnected
+    );
+    const readyPlayers = [...this.state.players.values()].filter(
+      (p) => p.ready
+    );
+    const dealer = this.state.players.get(this.state.dealerId);
+    const hasActiveSet = [...this.state.players.values()].some(
+      (p) => p.wentSet
+    );
+
+    this.state.roomMetadata.currentPlayers = activePlayers.length;
+    this.state.roomMetadata.readyPlayers = readyPlayers.length;
+    this.state.roomMetadata.potValue = this.state.potValue;
+    this.state.roomMetadata.dealerName = dealer?.displayName || '';
+    this.state.roomMetadata.hasActiveSet = hasActiveSet;
+
+    // Update game status based on round state
+    switch (this.state.roundState) {
+      case 'idle':
+        this.state.roomMetadata.gameStatus = 'Waiting for Players';
+        this.state.roomMetadata.allowJoining = true;
+        break;
+      case 'dealing':
+      case 'trump-selection':
+        this.state.roomMetadata.gameStatus = 'Setting Up';
+        this.state.roomMetadata.allowJoining = false;
+        break;
+      case 'knock-in':
+        this.state.roomMetadata.gameStatus = 'Players Deciding';
+        this.state.roomMetadata.allowJoining = false;
+        break;
+      case 'discard-draw':
+        this.state.roomMetadata.gameStatus = 'Drawing Cards';
+        this.state.roomMetadata.allowJoining = false;
+        break;
+      case 'turns':
+        this.state.roomMetadata.gameStatus = 'Playing Tricks';
+        this.state.roomMetadata.allowJoining = false;
+        break;
+      case 'end':
+        this.state.roomMetadata.gameStatus = hasActiveSet
+          ? 'Someone Went Set!'
+          : 'Hand Complete';
+        this.state.roomMetadata.allowJoining = !hasActiveSet; // Can't join if there's an active set
+        break;
+      default:
+        this.state.roomMetadata.gameStatus = 'In Progress';
+        this.state.roomMetadata.allowJoining = false;
+    }
+
+    // Don't allow joining if room is full
+    if (
+      this.state.roomMetadata.currentPlayers >=
+      this.state.roomMetadata.maxPlayers
+    ) {
+      this.state.roomMetadata.allowJoining = false;
+    }
   }
 }

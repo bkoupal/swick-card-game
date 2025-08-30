@@ -4,6 +4,7 @@ import { GameScreenComponent } from './game-screen/game-screen.component';
 import { GameGuardService } from './game-screen/game-guard.service';
 import { JoinScreenComponent } from './join-screen/join-screen.component';
 import { JoinGuardService } from './join-screen/join-guard.service';
+import { LobbyComponent } from './lobby/lobby.component';
 
 const routes: Routes = [
   {
@@ -12,12 +13,21 @@ const routes: Routes = [
     canActivate: [GameGuardService],
   },
   {
-    path: '',
-    component: JoinScreenComponent,
+    path: 'lobby',
+    component: LobbyComponent,
     pathMatch: 'full',
+  },
+  {
+    path: 'join',
+    component: JoinScreenComponent,
     canActivate: [JoinGuardService],
   },
-  { path: '**', redirectTo: '' },
+  {
+    path: '',
+    redirectTo: '/lobby',
+    pathMatch: 'full',
+  },
+  { path: '**', redirectTo: '/lobby' },
 ];
 
 @NgModule({

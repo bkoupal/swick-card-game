@@ -64,11 +64,31 @@ export class GameService {
     );
   }
 
-  public createRoom(playerName: string = 'Player') {
+  public createRoom(
+    playerName: string = 'Player',
+    isPublic: boolean = true,
+    roomName?: string
+  ) {
     return this.updateRoom(
       () =>
         this.client.create('gameRoom', {
           playerName: playerName,
+          roomName: roomName || `${playerName}'s Game`,
+          isPublic: isPublic,
+          maxPlayers: 6,
+        }),
+      true
+    );
+  }
+
+  public createPublicRoom(playerName: string = 'Player', roomName?: string) {
+    return this.updateRoom(
+      () =>
+        this.client.create('gameRoom', {
+          playerName: playerName,
+          roomName: roomName || `${playerName}'s Game`,
+          isPublic: true,
+          maxPlayers: 6,
         }),
       true
     );

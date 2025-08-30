@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -26,6 +27,9 @@ import { NotifierModule } from 'angular-notifier';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { HandScoreComponent } from './game-screen/player/hand-score/hand-score.component';
 import { LayoutModule } from '@angular/cdk/layout';
+import { LobbyComponent } from './lobby/lobby.component';
+import { GameService } from './game.service';
+import { LobbyService } from './lobby.service';
 
 @NgModule({
   declarations: [
@@ -40,6 +44,7 @@ import { LayoutModule } from '@angular/cdk/layout';
     KickDialogComponent,
     InputConstrainDirective,
     HandScoreComponent,
+    LobbyComponent,
   ],
   imports: [
     BrowserModule,
@@ -49,6 +54,7 @@ import { LayoutModule } from '@angular/cdk/layout';
     MatFormFieldModule,
     MatInputModule,
     MatProgressBarModule,
+    MatProgressSpinnerModule,
     MatDialogModule,
     MatIconModule,
     MatTooltipModule,
@@ -65,7 +71,7 @@ import { LayoutModule } from '@angular/cdk/layout';
       },
     }),
   ],
-  providers: [],
+  providers: [GameService, LobbyService],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

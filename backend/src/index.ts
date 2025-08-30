@@ -1,4 +1,5 @@
 import { Server } from 'colyseus';
+import { LobbyRoom, RelayRoom } from 'colyseus';
 import { createServer } from 'http';
 import express from 'express';
 import cors from 'cors';
@@ -17,7 +18,10 @@ const server = createServer(app);
 const gameServer = new Server({ server });
 
 // Define your room
-gameServer.define('gameRoom', GameRoom);
+gameServer.define('gameRoom', GameRoom).enableRealtimeListing();
+
+// Optional: Add the built-in lobby room
+gameServer.define('lobby', LobbyRoom);
 
 const port = parseInt(process.env.PORT || '2567', 10);
 const host = '0.0.0.0';
