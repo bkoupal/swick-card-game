@@ -59,11 +59,15 @@ export class GameService {
         this.client.create('gameRoom', {
           playerName: gameSetup.playerName,
           gameSetup: gameSetup,
+          roomName: `${gameSetup.playerName}'s Game`,
+          isPublic: true, // Make bot rooms public so they appear in lobby
+          maxPlayers: gameSetup.totalPlayers,
         }),
       true
     );
   }
 
+  // Also ensure your regular createRoom method signature is updated:
   public createRoom(
     playerName: string = 'Player',
     isPublic: boolean = true,
@@ -81,6 +85,7 @@ export class GameService {
     );
   }
 
+  // And make sure createPublicRoom is consistent:
   public createPublicRoom(playerName: string = 'Player', roomName?: string) {
     return this.updateRoom(
       () =>

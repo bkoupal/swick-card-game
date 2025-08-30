@@ -1,161 +1,270 @@
+<!-- src/app/lobby/lobby.component.html -->
 <div class="lobby-container">
   <div class="lobby-header">
-    <h1 class="lobby-title">🎮 SWICK Game Lobby</h1>
-    <p class="lobby-subtitle">Join a game or create your own!</p>
+    <h1 class="lobby-title">SWICK Game Lobby</h1>
+    <p class="lobby-subtitle">Join an existing game or create your own</p>
   </div>
 
   <!-- Player Name Input -->
-  <div class="player-name-section">
-    <mat-form-field appearance="outline" class="player-name-field">
-      <mat-label>Your Name</mat-label>
-      <input
-        matInput
-        [formControl]="playerName"
-        maxlength="20"
-        placeholder="Enter your name"
-      />
+  <div class="player-setup">
+    <div class="name-section">
+      <mat-form-field appearance="outline" class="player-name-field">
+        <mat-label>Your Name</mat-label>
+        <input
+          matInput
+          [formControl]="playerName"
+          placeholder="Enter your player name"
+          maxlength="20"
+        />
+        <button
+          mat-icon-button
+          matSuffix
+          (click)="generateRandomName()"
+          matTooltip="Generate random name"
+        >
+          <mat-icon>shuffle</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+
+    <!-- Quick Create Section -->
+    <div class="create-section">
       <button
-        mat-icon-button
-        matSuffix
-        (click)="generateRandomName()"
-        matTooltip="Generate random name"
+        mat-raised-button
+        color="primary"
+        (click)="createRoom()"
+        [disabled]="isLoading || playerName.invalid"
+        class="create-btn quick-create"
       >
-        <mat-icon>shuffle</mat-icon>
+        <mat-icon>add</mat-icon>
+        Quick Game
       </button>
-      <mat-error *ngIf="playerName.invalid && playerName.touched">
-        Name is required (1-20 characters)
-      </mat-error>
-    </mat-form-field>
 
-    <button
-      mat-raised-button
-      color="primary"
-      class="create-room-btn"
-      (click)="createRoom()"
-      [disabled]="isLoading || playerName.invalid"
-    >
-      <mat-icon>add</mat-icon>
-      Create New Game
-    </button>
-  </div>
-
-  <!-- Error Display -->
-  <div *ngIf="error" class="error-message">
-    <mat-icon>error</mat-icon>
-    {{ error }}
-    <button mat-icon-button (click)="error = null">
-      <mat-icon>close</mat-icon>
-    </button>
-  </div>
-
-  <!-- Room List Header -->
-  <div class="room-list-header">
-    <h2>Active Games</h2>
-    <div class="header-actions">
       <button
-        mat-icon-button
-        (click)="refreshRoomList()"
-        [disabled]="isLoading"
-        matTooltip="Refresh room list"
+        mat-button
+        (click)="toggleAdvancedCreation()"
+        class="toggle-advanced"
       >
-        <mat-icon [class.spin]="isLoading">refresh</mat-icon>
+        <mat-icon>{{
+          showAdvancedCreation ? "expand_less" : "expand_more"
+        }}</mat-icon>
+        Advanced Options
       </button>
-      <span class="room-count">{{ roomListings.length }} games found</span>
+    </div>
+
+    <!-- Advanced Game Creation -->
+    <div class="advanced-creation" *ngIf="showAdvancedCreation">
+      <div class="advanced-header">
+        <h3>Game Setup</h3>
+      </div>
+
+      <!-- Total Players -->
+      <div class="setting-group">
+        <label class="setting-label">Total Players (3-6):</label>
+        <div class="player-count-buttons">
+          <button
+            *ngFor="let count of [3, 4, 5, 6]"
+            mat-raised-button
+            [color]="totalPlayers === count ? 'accent' : 'basic'"
+            (click)="setTotalPlayers(count)"
+            class="count-btn"
+          >
+            {{ count }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Player Type Selection -->
+      <div class="setting-group" *ngIf="totalPlayers > 1">
+        <label class="setting-label">Player Types:</label>
+
+        <!-- Player 1 (always you) -->
+        <div class="player-slot">
+          <span class="player-label">Player 1:</span>
+          <span class="player-type-fixed">👤 You (Human)</span>
+        </div>
+
+        <!-- Additional players -->
+        <div
+          *ngFor="let idx of getPlayerSlots(); let i = index"
+          class="player-slot"
+        >
+          <span class="player-label">Player {{ idx + 1 }}:</span>
+          <div class="player-type-buttons">
+            <button
+              mat-raised-button
+              [color]="playerTypes[i] === 'human' ? 'primary' : 'basic'"
+              (click)="setPlayerType(i, 'human')"
+              class="type-btn"
+            >
+              👤 Human
+            </button>
+            <button
+              mat-raised-button
+              [color]="playerTypes[i] === 'bot' ? 'accent' : 'basic'"
+              (click)="setPlayerType(i, 'bot')"
+              class="type-btn"
+            >
+              🤖 Bot
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bot Difficulty (only show if any bots selected) -->
+      <div class="setting-group" *ngIf="hasAnyBots()">
+        <label class="setting-label">Bot Difficulty:</label>
+        <div class="difficulty-buttons">
+          <button
+            mat-raised-button
+            [color]="botDifficulty === 'easy' ? 'accent' : 'basic'"
+            (click)="setBotDifficulty('easy')"
+            class="difficulty-btn"
+          >
+            Easy
+          </button>
+          <button
+            mat-raised-button
+            [color]="botDifficulty === 'medium' ? 'accent' : 'basic'"
+            (click)="setBotDifficulty('medium')"
+            class="difficulty-btn"
+          >
+            Medium
+          </button>
+          <button
+            mat-raised-button
+            [color]="botDifficulty === 'hard' ? 'accent' : 'basic'"
+            (click)="setBotDifficulty('hard')"
+            class="difficulty-btn"
+          >
+            Hard
+          </button>
+        </div>
+      </div>
+
+      <!-- Game Summary -->
+      <div class="game-summary">
+        <mat-icon>info</mat-icon>
+        <span>{{ getGameSummary() }}</span>
+      </div>
+
+      <!-- Create Advanced Room Button -->
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="createAdvancedRoom()"
+        [disabled]="isLoading || playerName.invalid"
+        class="create-btn advanced-create"
+      >
+        <mat-icon>rocket_launch</mat-icon>
+        Create Custom Game
+      </button>
     </div>
   </div>
 
-  <!-- Loading State -->
-  <div *ngIf="isLoading && roomListings.length === 0" class="loading-state">
+  <!-- Error Display -->
+  <div class="error-display" *ngIf="error">
+    <mat-icon>error</mat-icon>
+    <span>{{ error }}</span>
+  </div>
+
+  <!-- Loading Indicator -->
+  <div class="loading-section" *ngIf="isLoading">
     <mat-spinner diameter="40"></mat-spinner>
-    <p>Loading games...</p>
+    <span>Loading...</span>
   </div>
 
-  <!-- Empty State -->
-  <div *ngIf="!isLoading && roomListings.length === 0" class="empty-state">
-    <mat-icon class="empty-icon">casino</mat-icon>
-    <h3>No active games</h3>
-    <p>Be the first to create a SWICK game!</p>
-    <button
-      mat-raised-button
-      color="primary"
-      (click)="createRoom()"
-      [disabled]="playerName.invalid"
-    >
-      Create First Game
-    </button>
-  </div>
+  <!-- Room Listings -->
+  <div class="room-listings">
+    <div class="listings-header">
+      <h2>Available Games</h2>
+      <button
+        mat-icon-button
+        (click)="loadRoomListings()"
+        [disabled]="isLoading"
+        matTooltip="Refresh room list"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
 
-  <!-- Room List -->
-  <div *ngIf="roomListings.length > 0" class="room-list">
-    <div
-      *ngFor="let room of roomListings; trackBy: trackByRoomId"
-      class="room-card"
-      [class.joinable]="canJoinRoom(room)"
-      [class.in-progress]="room.metadata.gameStatus !== 'Waiting for Players'"
-      [class.has-set]="room.metadata.hasActiveSet"
-    >
-      <!-- Room Header -->
-      <div class="room-header">
-        <div class="room-info">
+    <div class="rooms-grid" *ngIf="roomListings.length > 0; else noRooms">
+      <div
+        *ngFor="let room of roomListings"
+        class="room-card"
+        [class.room-joinable]="canJoinRoom(room)"
+        [class.room-locked]="!canJoinRoom(room)"
+      >
+        <!-- Room Header -->
+        <div class="room-header">
           <h3 class="room-name">{{ room.name }}</h3>
           <span class="room-id">ID: {{ room.roomId }}</span>
-        </div>
-        <div class="room-status">
           <span
-            class="status-badge"
-            [class]="getStatusClass(room.metadata.gameStatus)"
+            class="room-status"
+            [class]="
+              'status-' +
+              room.metadata.gameStatus.toLowerCase().replace(' ', '-')
+            "
           >
             {{ room.metadata.gameStatus }}
           </span>
         </div>
-      </div>
 
-      <!-- Room Details -->
-      <div class="room-details">
-        <div class="detail-item">
-          <mat-icon>people</mat-icon>
-          <span
-            >{{ room.metadata.currentPlayers }}/{{
-              room.maxClients
-            }}
-            players</span
+        <!-- Room Details -->
+        <div class="room-details">
+          <div class="detail-item">
+            <mat-icon>people</mat-icon>
+            <span
+              >{{ room.metadata.currentPlayers }}/{{
+                room.maxClients
+              }}
+              players</span
+            >
+          </div>
+
+          <div class="detail-item" *ngIf="room.metadata.readyPlayers > 0">
+            <mat-icon>check_circle</mat-icon>
+            <span>{{ room.metadata.readyPlayers }} ready</span>
+          </div>
+
+          <div class="detail-item" *ngIf="room.metadata.potValue > 0">
+            <mat-icon>monetization_on</mat-icon>
+            <span>{{ room.metadata.potValue }}¢ pot</span>
+          </div>
+
+          <div class="detail-item" *ngIf="room.metadata.dealerName">
+            <mat-icon>person_pin</mat-icon>
+            <span>Dealer: {{ room.metadata.dealerName }}</span>
+          </div>
+        </div>
+
+        <!-- Room Actions -->
+        <div class="room-actions">
+          <button
+            mat-raised-button
+            *ngIf="canJoinRoom(room)"
+            color="primary"
+            (click)="joinRoom(room)"
+            [disabled]="isLoading || playerName.invalid"
           >
-        </div>
+            <mat-icon>login</mat-icon>
+            Join Game
+          </button>
 
-        <div class="detail-item" *ngIf="room.metadata.readyPlayers > 0">
-          <mat-icon>check_circle</mat-icon>
-          <span>{{ room.metadata.readyPlayers }} ready</span>
-        </div>
-
-        <div class="detail-item" *ngIf="room.metadata.potValue > 0">
-          <mat-icon>monetization_on</mat-icon>
-          <span>{{ room.metadata.potValue }}¢ pot</span>
-        </div>
-
-        <div class="detail-item" *ngIf="room.metadata.dealerName">
-          <mat-icon>person_pin</mat-icon>
-          <span>Dealer: {{ room.metadata.dealerName }}</span>
-        </div>
-      </div>
-
-      <!-- Room Actions -->
-      <div class="room-actions">
-        <button
-          mat-raised-button
-          *ngIf="canJoinRoom(room)"
-          color="primary"
-          (click)="joinRoom(room)"
-          [disabled]="isLoading || playerName.invalid"
-        >
-          <mat-icon>login</mat-icon>
-          Join Game
-        </button>
-
-        <div *ngIf="!canJoinRoom(room)" class="join-disabled-reason">
-          <mat-icon>block</mat-icon>
-          {{ getJoinErrorMessage(room) }}
+          <div *ngIf="!canJoinRoom(room)" class="join-disabled-reason">
+            <mat-icon>block</mat-icon>
+            {{ getJoinErrorMessage(room) }}
+          </div>
         </div>
       </div>
     </div>
+
+    <ng-template #noRooms>
+      <div class="no-rooms">
+        <mat-icon>games</mat-icon>
+        <p>No games available</p>
+        <p class="no-rooms-subtitle">Create a game to get started!</p>
+      </div>
+    </ng-template>
   </div>
 </div>

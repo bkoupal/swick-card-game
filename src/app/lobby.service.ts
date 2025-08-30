@@ -1,3 +1,4 @@
+// src/app/lobby.service.ts
 import { Injectable } from '@angular/core';
 import { GameService } from './game.service';
 import * as Colyseus from 'colyseus.js';
@@ -37,18 +38,10 @@ export class LobbyService {
 
   async refreshRoomList(): Promise<void> {
     try {
-      console.log('🔍 Fetching available rooms...');
       const rooms = await this.gameService.client.getAvailableRooms('gameRoom');
-      console.log('📋 Raw rooms from Colyseus:', rooms);
 
       const publicRooms = rooms
         .filter((room) => {
-          console.log(
-            `🏠 Room ${room.roomId}: metadata =`,
-            room.metadata,
-            'isPublic =',
-            room.metadata?.isPublic
-          );
           return room.metadata?.isPublic !== false;
         })
         .map((room) => ({
@@ -70,10 +63,9 @@ export class LobbyService {
           locked: false,
         }));
 
-      console.log('✅ Filtered public rooms:', publicRooms);
       this.roomListings$.next(publicRooms);
     } catch (error) {
-      console.error('❌ Failed to fetch room listings:', error);
+      console.error('Failed to fetch room listings:', error);
       this.roomListings$.next([]);
     }
   }

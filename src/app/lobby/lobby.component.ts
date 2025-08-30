@@ -1,7 +1,8 @@
+// src/app/lobby/lobby.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { LobbyService, RoomListingData } from '../lobby.service';
-import { GameService } from '../game.service';
+import { GameService, GameSetup } from '../game.service';
 import { FormControl, Validators } from '@angular/forms';
 
 @Component({
@@ -13,12 +14,18 @@ export class LobbyComponent implements OnInit, OnDestroy {
   roomListings: RoomListingData[] = [];
   isLoading = false;
   error: string | null = null;
+  showAdvancedCreation = false;
 
   playerName = new FormControl('', [
     Validators.required,
     Validators.minLength(1),
     Validators.maxLength(20),
   ]);
+
+  // Advanced game creation properties
+  totalPlayers = 3;
+  playerTypes: ('human' | 'bot')[] = ['human', 'human']; // For players 2-6 (player 1 is always human)
+  botDifficulty: 'easy' | 'medium' | 'hard' = 'easy';
 
   constructor(
     private lobbyService: LobbyService,
@@ -49,7 +56,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
     this.lobbyService.stopAutoRefresh();
   }
 
-  private loadRoomListings(): void {
+  loadRoomListings(): void {
     this.isLoading = true;
     this.error = null;
     this.lobbyService.refreshRoomList();
@@ -82,7 +89,45 @@ export class LobbyComponent implements OnInit, OnDestroy {
 
     try {
       this.isLoading = true;
-      await this.gameService.createRoom(this.playerName.value.trim());
+      await this.gameService.createPublicRoom(
+        this.playerName.value.trim(),
+        `${this.playerName.value.trim()}'s Game`
+      );
+    } catch (error) {
+      this.error = 'Failed to create room';
+      this.isLoading = false;
+    }
+  }
+
+  async createAdvancedRoom(): Promise<void> {
+    if (!this.playerName.value?.trim()) {
+      this.error = 'Please enter a player name';
+      return;
+    }
+
+    try {
+      this.isLoading = true;
+
+      const gameSetup: GameSetup = {
+        totalPlayers: this.totalPlayers,
+        playerTypes: this.playerTypes,
+        botDifficulty: this.botDifficulty,
+        playerName: this.playerName.value.trim(),
+      };
+
+      // Check if any bots are selected
+      const hasBots = this.hasAnyBots();
+
+      if (hasBots) {
+        // Create room with bot configuration
+        await this.gameService.createRoomWithBots(gameSetup);
+      } else {
+        // Create regular public room
+        await this.gameService.createPublicRoom(
+          gameSetup.playerName,
+          `${gameSetup.playerName}'s Game`
+        );
+      }
     } catch (error) {
       this.error = 'Failed to create room';
       this.isLoading = false;
@@ -97,11 +142,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
     return this.lobbyService.getJoinErrorMessage(room);
   }
 
-  refreshRoomList(): void {
-    this.loadRoomListings();
-  }
-
-  public generateRandomName(): void {
+  generateRandomName(): void {
     const randomNames = [
       'CardShark',
       'LuckyAce',
@@ -132,25 +173,62 @@ export class LobbyComponent implements OnInit, OnDestroy {
     this.playerName.setValue(name);
   }
 
-  trackByRoomId(index: number, room: RoomListingData): string {
-    return room.roomId;
+  toggleAdvancedCreation(): void {
+    this.showAdvancedCreation = !this.showAdvancedCreation;
   }
 
-  getStatusClass(status: string): string {
-    switch (status.toLowerCase()) {
-      case 'waiting for players':
-        return 'waiting';
-      case 'setting up':
-      case 'players deciding':
-      case 'drawing cards':
-        return 'setting-up';
-      case 'playing tricks':
-      case 'hand complete':
-        return 'in-progress';
-      case 'someone went set!':
-        return 'has-set';
-      default:
-        return 'in-progress';
+  // Advanced game creation methods
+  getPlayerSlots(): number[] {
+    // Return array for players 2 through totalPlayers
+    return Array.from({ length: this.totalPlayers - 1 }, (_, i) => i + 1);
+  }
+
+  setTotalPlayers(count: number): void {
+    this.totalPlayers = count;
+
+    // Adjust playerTypes array to match new total
+    const slotsNeeded = count - 1; // Player 1 is always human
+
+    if (this.playerTypes.length < slotsNeeded) {
+      // Add more slots, default to human
+      while (this.playerTypes.length < slotsNeeded) {
+        this.playerTypes.push('human');
+      }
+    } else if (this.playerTypes.length > slotsNeeded) {
+      // Remove extra slots
+      this.playerTypes = this.playerTypes.slice(0, slotsNeeded);
+    }
+  }
+
+  setPlayerType(slotIndex: number, type: 'human' | 'bot'): void {
+    if (slotIndex >= 0 && slotIndex < this.playerTypes.length) {
+      this.playerTypes[slotIndex] = type;
+    }
+  }
+
+  setBotDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
+    this.botDifficulty = difficulty;
+  }
+
+  hasAnyBots(): boolean {
+    return this.playerTypes.includes('bot');
+  }
+
+  getGameSummary(): string {
+    const humanCount =
+      this.playerTypes.filter((type) => type === 'human').length + 1; // +1 for player 1
+    const botCount = this.playerTypes.filter((type) => type === 'bot').length;
+
+    if (botCount === 0) {
+      return `${humanCount} human players`;
+    } else if (humanCount === 1) {
+      return `You vs ${botCount} ${this.botDifficulty} bot${
+        botCount > 1 ? 's' : ''
+      }`;
+    } else {
+      return `${humanCount} humans + ${botCount} ${this.botDifficulty} bot${
+        botCount > 1 ? 's' : ''
+      }`;
     }
   }
 }
