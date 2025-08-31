@@ -40,8 +40,10 @@ export class LobbyService {
     try {
       const rooms = await this.gameService.client.getAvailableRooms('gameRoom');
 
+      // FIXED: Show ALL public rooms, not just joinable ones
       const publicRooms = rooms
         .filter((room) => {
+          // Only filter by isPublic - show all game states
           return room.metadata?.isPublic !== false;
         })
         .map((room) => ({

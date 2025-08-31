@@ -442,6 +442,8 @@
     (dealerGoSet)="game.dealerGoSet($event)"
     [hasGoingSetBonus]="getNextRoundBonus() > 0"
     [goingSetBonusAmount]="getNextRoundBonus()"
+    [cardPlayPhase]="game.room!.state.roundState === 'turns'"
+    [isPlayersTurn]="game.playersTurn"
   ></app-player-actions>
 
   <span class="text-neutral-400 self-end" data-cy="roomId-value">

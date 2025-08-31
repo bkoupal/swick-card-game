@@ -73,7 +73,8 @@ export class GameService {
   public createRoom(
     playerName: string = 'Player',
     isPublic: boolean = true,
-    roomName?: string
+    roomName?: string,
+    maxPlayers: number = 6
   ) {
     return this.updateRoom(
       () =>
@@ -81,7 +82,7 @@ export class GameService {
           playerName: playerName,
           roomName: roomName || `${playerName}'s Game`,
           isPublic: isPublic,
-          maxPlayers: 6,
+          maxPlayers: maxPlayers,
         }),
       true
     );

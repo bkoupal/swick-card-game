@@ -152,11 +152,11 @@ export class GameRoom extends Room<GameState> {
 
     this.log('Room created');
 
-    // ADD THESE LINES HERE (at the beginning of onCreate):
     this.state.roomMetadata.roomName =
       options?.roomName || `SWICK Game ${this.roomId}`;
     this.state.roomMetadata.isPublic = options?.isPublic !== false;
     this.state.roomMetadata.maxPlayers = options?.maxPlayers || 6;
+    this.maxClients = this.state.roomMetadata.maxPlayers;
 
     this.updateRoomMetadata();
 
@@ -817,7 +817,10 @@ export class GameRoom extends Room<GameState> {
       );
     }
 
-    this.log(`Join`, client);
+    this.log(
+      `Join - Current: ${currentPlayerCount}/${maxPlayersAllowed}`,
+      client
+    );
 
     // Store game setup from room creator
     if (options?.gameSetup && !this.gameSetup) {
@@ -866,6 +869,7 @@ export class GameRoom extends Room<GameState> {
       gameStatus: this.state.roomMetadata.gameStatus,
       dealerName: this.state.roomMetadata.dealerName,
       hasActiveSet: this.state.roomMetadata.hasActiveSet,
+      maxClients: this.state.roomMetadata.maxPlayers,
     });
 
     this.updateRoomMetadata();
@@ -3284,7 +3288,7 @@ export class GameRoom extends Room<GameState> {
       gameStatus: this.state.roomMetadata.gameStatus,
       dealerName: this.state.roomMetadata.dealerName,
       hasActiveSet: this.state.roomMetadata.hasActiveSet,
-      maxClients: this.state.roomMetadata.maxPlayers, // ADD THIS for proper client display
+      maxClients: this.state.roomMetadata.maxPlayers,
     });
   }
 }

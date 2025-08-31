@@ -142,7 +142,8 @@ export class LobbyComponent implements OnInit, OnDestroy {
           !this.isPrivateGame, // isPublic = !isPrivate
           this.isPrivateGame
             ? `${gameSetup.playerName}'s Private Game`
-            : `${gameSetup.playerName}'s Game`
+            : `${gameSetup.playerName}'s Game`,
+          gameSetup.totalPlayers
         );
       }
     } catch (error: any) {

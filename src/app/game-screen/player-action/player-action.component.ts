@@ -20,6 +20,7 @@ export class PlayerActionsComponent {
   @Output() autoReadyChange = new EventEmitter<boolean>();
 
   @Input() cardPlayPhase = false;
+  @Input() isPlayersTurn = false;
 
   // SWICK-specific inputs and outputs
   @Input() trumpSelectionMenuVisible = false;
