@@ -30,6 +30,7 @@ import { LayoutModule } from '@angular/cdk/layout';
 import { LobbyComponent } from './lobby/lobby.component';
 import { GameService } from './game.service';
 import { LobbyService } from './lobby.service';
+import { MatChipsModule } from '@angular/material/chips';
 
 @NgModule({
   declarations: [
@@ -57,6 +58,7 @@ import { LobbyService } from './lobby.service';
     MatProgressSpinnerModule,
     MatDialogModule,
     MatIconModule,
+    MatChipsModule,
     MatTooltipModule,
     ClipboardModule,
     ReactiveFormsModule,

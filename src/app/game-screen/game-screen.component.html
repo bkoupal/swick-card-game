@@ -82,6 +82,44 @@
     </div>
   </div>
 
+  <!-- Privacy Indicator -->
+
+  <div class="game-privacy-indicator" *ngIf="game.room?.state?.roomMetadata">
+    <mat-chip-set>
+      <mat-chip
+        [color]="
+          game.room?.state?.roomMetadata?.isPublic ? 'primary' : 'accent'
+        "
+        selected
+      >
+        <mat-icon>{{
+          game.room?.state?.roomMetadata?.isPublic ? "public" : "lock"
+        }}</mat-icon>
+        {{
+          game.room?.state?.roomMetadata?.isPublic
+            ? "Public Game"
+            : "Private Game"
+        }}
+      </mat-chip>
+    </mat-chip-set>
+  </div>
+
+  <!-- Room ID display for private games -->
+  <div
+    class="room-id-display"
+    *ngIf="
+      game.room?.state?.roomMetadata &&
+      !game.room?.state?.roomMetadata?.isPublic
+    "
+  >
+    <mat-chip-set>
+      <mat-chip color="warn" selected>
+        <mat-icon>share</mat-icon>
+        Share ID: {{ game.room?.id }}
+      </mat-chip>
+    </mat-chip-set>
+  </div>
+
   <div class="grid place-items-center py-8 w-min">
     <!-- ADD this new div for trick cards at the very top -->
     <div

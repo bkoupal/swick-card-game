@@ -150,7 +150,7 @@ export class GameRoom extends Room<GameState> {
     this.setState(new GameState({}));
     this.clock.start();
 
-    this.log('Created');
+    this.log('Room created');
 
     // ADD THESE LINES HERE (at the beginning of onCreate):
     this.state.roomMetadata.roomName =
@@ -171,7 +171,7 @@ export class GameRoom extends Room<GameState> {
       gameStatus: this.state.roomMetadata.gameStatus,
       dealerName: this.state.roomMetadata.dealerName,
       hasActiveSet: this.state.roomMetadata.hasActiveSet,
-      maxClients: this.state.roomMetadata.maxPlayers, // ADD THIS for proper client display
+      maxClients: this.state.roomMetadata.maxPlayers,
     });
 
     //Send ping messages to all clients
@@ -801,13 +801,20 @@ export class GameRoom extends Room<GameState> {
   }
 
   onJoin(client: Client, options: any) {
+    // Check both current players and maxPlayers limit
+    const currentPlayerCount = this.state.players.size;
+    const maxPlayersAllowed = this.state.roomMetadata.maxPlayers;
+
     // Check if joining is allowed
     if (!this.state.roomMetadata.allowJoining) {
       throw new Error('Cannot join: Game in progress or has active set');
     }
 
-    if (this.state.players.size >= this.state.roomMetadata.maxPlayers) {
-      throw new Error('Room is full');
+    // Enforce maxPlayers limit properly
+    if (currentPlayerCount >= maxPlayersAllowed) {
+      throw new Error(
+        `Room is full (${currentPlayerCount}/${maxPlayersAllowed} players)`
+      );
     }
 
     this.log(`Join`, client);
@@ -1261,6 +1268,8 @@ export class GameRoom extends Room<GameState> {
 
     this.state.roundState = 'dealing';
 
+    this.updateRoomMetadata();
+
     // Reset and shuffle the deck before each hand (SWICK rule)
     this.state.deck.reset();
 
@@ -1378,6 +1387,9 @@ export class GameRoom extends Room<GameState> {
     // Dealer has time to decide whether to keep trump card
     this.setInactivitySkipTimeout();
 
+    // Update lobby status for trump selection:
+    this.updateRoomMetadata();
+
     // Trigger bot decisions if next player is a bot
     this.triggerBotDecisions();
   }
@@ -1389,6 +1401,9 @@ export class GameRoom extends Room<GameState> {
     this.inactivityTimeoutRef?.clear();
 
     this.log(`Trump suit is: ${this.state.trumpSuit}`);
+
+    // Update lobby status for knock-in phase:
+    this.updateRoomMetadata();
 
     // Start with first non-dealer player in order they joined
     this.startNextKnockTurn();
@@ -1510,6 +1525,9 @@ export class GameRoom extends Room<GameState> {
     this.state.roundState = 'discard-draw';
     this.state.currentTurnTimeoutTimestamp = 0;
     this.inactivityTimeoutRef?.clear();
+
+    // Update lobby status for discard-draw phase:
+    this.updateRoomMetadata();
 
     // Reset discard states for all knocked-in players
     for (const player of this.state.players.values()) {
@@ -1676,6 +1694,9 @@ export class GameRoom extends Room<GameState> {
     this.log(`No special hands detected - starting normal trick-taking phase`);
     this.state.roundState = 'turns';
 
+    // Update lobby status for turns phase:
+    this.updateRoomMetadata();
+
     // Initialize first trick
     this.state.currentTrick.clear();
     this.state.currentTrickNumber = 1;
@@ -1701,8 +1722,9 @@ export class GameRoom extends Room<GameState> {
 
     this.setInactivitySkipTimeout();
 
-    // ADD THIS LINE - This was missing!
     this.triggerBotDecisions();
+
+    this.updateRoomMetadata();
   }
 
   /** Iterator over players that knocked in */
@@ -2067,6 +2089,7 @@ export class GameRoom extends Room<GameState> {
       // Trigger bot decisions if next player is a bot
       this.triggerBotDecisions();
     }
+    this.updateRoomMetadata();
   }
 
   /**

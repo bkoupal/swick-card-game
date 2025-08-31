@@ -167,3 +167,88 @@
     transform: scale(1);
   }
 }
+
+.game-privacy-indicator {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+
+  mat-chip {
+    font-size: 0.8rem;
+    font-weight: 500;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
+    }
+  }
+}
+
+.room-id-display {
+  position: fixed;
+  top: 50px;
+  right: 10px;
+  z-index: 1000;
+
+  mat-chip {
+    font-size: 0.75rem;
+    font-weight: 500;
+    background-color: rgba(244, 67, 54, 0.1) !important;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      margin-right: 4px;
+    }
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .game-privacy-indicator {
+    top: 5px;
+    right: 5px;
+
+    mat-chip {
+      font-size: 0.7rem;
+
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+    }
+  }
+
+  .room-id-display {
+    top: 35px;
+    right: 5px;
+
+    mat-chip {
+      font-size: 0.65rem;
+
+      mat-icon {
+        font-size: 12px;
+        width: 12px;
+        height: 12px;
+      }
+    }
+  }
+}
+
+/* Ensure indicators don't interfere with existing UI */
+@media (max-width: 480px) {
+  .game-privacy-indicator,
+  .room-id-display {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin: 5px;
+    text-align: center;
+  }
+}
