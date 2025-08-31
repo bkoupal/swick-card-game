@@ -807,12 +807,16 @@ export class GameRoom extends Room<GameState> {
 
     // Check if joining is allowed
     if (!this.state.roomMetadata.allowJoining) {
-      throw new Error('Cannot join: Game in progress or has active set');
+      throw new ServerError(
+        4001,
+        'Cannot join: Game in progress or has active set'
+      );
     }
 
     // Enforce maxPlayers limit properly
     if (currentPlayerCount >= maxPlayersAllowed) {
-      throw new Error(
+      throw new ServerError(
+        4001,
         `Room is full (${currentPlayerCount}/${maxPlayersAllowed} players)`
       );
     }

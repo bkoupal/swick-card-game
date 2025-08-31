@@ -23,6 +23,7 @@ export default {
   // Websocket Code when player is disconnected by server
   kickCode: 4000,
   roomFullCode: 4444,
+  joinRestrictedCode: 4001,
 
   // IMPROVED: More frequent pings for mobile stability
   pingInterval: 3000, // Reduced from 5000ms to 3000ms
