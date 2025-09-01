@@ -45,3 +45,6 @@ deploy-config.json
 
 cypress/videos
 .vscode
+
+/deploy.ps1
+/deploy-config.json
