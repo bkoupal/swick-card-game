@@ -175,6 +175,8 @@ export class GameRoom extends Room<GameState> {
     this.setState(new GameState({}));
     this.clock.start();
 
+    await this.clearAllRoomsFast();
+
     // START ROOM ACTIVITY TRACKING
     this.updateRoomActivity();
 
@@ -844,8 +846,6 @@ export class GameRoom extends Room<GameState> {
       }
       // If goSet is false, this message shouldn't be sent, but just ignore it
     });
-
-    await this.clearAllRoomsFast();
   }
 
   onAuth(client: Client) {
