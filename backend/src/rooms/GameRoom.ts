@@ -147,6 +147,26 @@ export class GameRoom extends Room<GameState> {
     return new Promise((resolve) => this.clock.setTimeout(resolve, ms));
   }
 
+  async clearAllRoomsFast() {
+    try {
+      const allRoomIds = await this.presence.smembers(this.LOBBY_CHANNEL);
+      console.log('Found room IDs to clear:', allRoomIds);
+
+      if (allRoomIds.length > 0) {
+        // Remove all in parallel
+        await Promise.all(
+          allRoomIds.map((roomId) =>
+            this.presence.srem(this.LOBBY_CHANNEL, roomId)
+          )
+        );
+      }
+
+      console.log(`Cleared ${allRoomIds.length} inactive room IDs`);
+    } catch (error) {
+      console.error('Error clearing rooms:', error);
+    }
+  }
+
   async onCreate(options: any) {
     this.roomId = await this.registerRoomId();
     if (!options.isPublic) {
@@ -824,6 +844,8 @@ export class GameRoom extends Room<GameState> {
       }
       // If goSet is false, this message shouldn't be sent, but just ignore it
     });
+
+    await this.clearAllRoomsFast();
   }
 
   onAuth(client: Client) {
