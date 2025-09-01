@@ -1,4 +1,5 @@
-// src/app/lobby.service.ts
+// src/app/lobby.service.ts - UPDATED with inactive room filtering
+
 import { Injectable } from '@angular/core';
 import { GameService } from './game.service';
 import * as Colyseus from 'colyseus.js';
@@ -19,6 +20,8 @@ export interface RoomListingData {
     gameStatus: string;
     dealerName: string;
     hasActiveSet: boolean;
+    lastActivity?: number;
+    inactive?: boolean;
   };
   locked: boolean;
 }
@@ -40,11 +43,26 @@ export class LobbyService {
     try {
       const rooms = await this.gameService.client.getAvailableRooms('gameRoom');
 
-      // FIXED: Show ALL public rooms, not just joinable ones
-      const publicRooms = rooms
+      // FILTER OUT INACTIVE ROOMS (older than 15 minutes)
+      const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
+
+      const activePublicRooms = rooms
         .filter((room) => {
-          // Only filter by isPublic - show all game states
-          return room.metadata?.isPublic !== false;
+          // Only show public rooms
+          if (room.metadata?.isPublic !== true) return false;
+
+          // Filter out rooms marked as inactive
+          if (room.metadata?.inactive === true) return false;
+
+          // Filter out rooms with no recent activity (fallback check)
+          if (
+            room.metadata?.lastActivity &&
+            room.metadata.lastActivity < fifteenMinutesAgo
+          ) {
+            return false;
+          }
+
+          return true;
         })
         .map((room) => ({
           roomId: room.roomId,
@@ -65,7 +83,7 @@ export class LobbyService {
           locked: false,
         }));
 
-      this.roomListings$.next(publicRooms);
+      this.roomListings$.next(activePublicRooms);
     } catch (error) {
       console.error('Failed to fetch room listings:', error);
       this.roomListings$.next([]);

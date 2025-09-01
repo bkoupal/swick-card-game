@@ -39,6 +39,11 @@ export class GameRoom extends Room<GameState> {
   public delayedRoundStartRef?: Delayed;
   public delayedRoomDeleteRef?: Delayed;
 
+  // ADD THIS NEW PROPERTY FOR ROOM TIMEOUT
+  public roomInactivityTimeoutRef?: Delayed;
+  private readonly ROOM_INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
+  private lastActivityTimestamp: number = Date.now();
+
   /** Iterator for all players that are playing in the current round */
   private roundPlayersIdIterator: IterableIterator<string>;
 
@@ -150,6 +155,9 @@ export class GameRoom extends Room<GameState> {
     this.setState(new GameState({}));
     this.clock.start();
 
+    // START ROOM ACTIVITY TRACKING
+    this.updateRoomActivity();
+
     this.log('Room created');
 
     this.state.roomMetadata.roomName =
@@ -182,6 +190,8 @@ export class GameRoom extends Room<GameState> {
     // Client message listeners:
 
     this.onMessage('ready', (client, state: boolean) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (this.state.roundState != 'idle' || typeof state != 'boolean') return;
 
       const player = this.state.players.get(client.sessionId);
@@ -218,6 +228,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('autoReady', (client, state: boolean) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (this.state.roundState != 'idle' || typeof state != 'boolean') return;
 
       this.log(`Auto ready state change: ${state}`, client);
@@ -228,6 +240,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('bet', (client, newBet: number) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (
         this.state.roundState != 'idle' ||
         this.state.players.get(client.sessionId).ready ||
@@ -264,6 +278,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('playCard', (client, cardIndex: number) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (
         client.sessionId != this.state.currentTurnPlayerId ||
         this.state.roundState != 'turns' ||
@@ -294,6 +310,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('kick', (client, id: string) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (!this.state.players.get(client.sessionId)?.admin || !id) return;
 
       this.log(`Kick client ${id}`, client);
@@ -304,6 +322,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('changeName', (client, newName: string) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       // Only allow name changes during idle state
       if (
         this.state.roundState !== 'idle' ||
@@ -331,6 +351,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('keepTrump', (client, keep: boolean) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       // Only dealer can make trump decision during trump-selection phase
       if (
         this.state.roundState != 'trump-selection' ||
@@ -370,6 +392,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('knockIn', (client, knockIn: boolean) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (this.state.roundState != 'knock-in' || typeof knockIn != 'boolean')
         return;
 
@@ -465,6 +489,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('selectCard', (client, cardIndex: number) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (
         this.state.roundState != 'discard-draw' ||
         client.sessionId != this.state.currentDiscardPlayerId ||
@@ -543,6 +569,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('playCards', (client) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (
         this.state.roundState != 'discard-draw' ||
         client.sessionId != this.state.currentDiscardPlayerId
@@ -584,6 +612,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('discardDraw', (client) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (
         this.state.roundState != 'discard-draw' ||
         client.sessionId != this.state.currentDiscardPlayerId
@@ -669,6 +699,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('admin-check-special-hands', (client) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (!this.isAdmin(client.sessionId)) return;
 
       const specialHands = this.checkForSpecialHands();
@@ -679,6 +711,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('admin-create-special-hand', (client, data: any) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (!this.isAdmin(client.sessionId)) return;
 
       const { playerId, handType } = data;
@@ -690,6 +724,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('admin-test-special-hands', (client) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (!this.isAdmin(client.sessionId)) return;
 
       const knockedInPlayers = [...this.state.players.values()]
@@ -710,6 +746,8 @@ export class GameRoom extends Room<GameState> {
     this.onMessage(
       'admin-create-bot',
       (client, difficulty: 'easy' | 'medium' | 'hard') => {
+        // Update room activity on any message
+        this.updateRoomActivity();
         if (!this.isAdmin(client.sessionId)) return;
 
         // Create a simple test bot using existing createBot method but with random number
@@ -719,6 +757,8 @@ export class GameRoom extends Room<GameState> {
     );
 
     this.onMessage('admin-list-bots', (client) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (!this.isAdmin(client.sessionId)) return;
 
       const bots = [...this.state.players.values()].filter((p) => p.isBot);
@@ -730,6 +770,8 @@ export class GameRoom extends Room<GameState> {
     });
 
     this.onMessage('dealerGoSet', (client, goSet: boolean) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
       if (this.state.roundState != 'discard-draw' || typeof goSet != 'boolean')
         return;
 
@@ -801,6 +843,9 @@ export class GameRoom extends Room<GameState> {
   }
 
   onJoin(client: Client, options: any) {
+    // Update room activity when players join
+    this.updateRoomActivity();
+
     // Check both current players and maxPlayers limit
     const currentPlayerCount = this.state.players.size;
     const maxPlayersAllowed = this.state.roomMetadata.maxPlayers;
@@ -1111,6 +1156,7 @@ export class GameRoom extends Room<GameState> {
   }
 
   onDispose() {
+    this.roomInactivityTimeoutRef?.clear();
     this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
     this.log(`Disposing`);
   }
@@ -3293,6 +3339,23 @@ export class GameRoom extends Room<GameState> {
       dealerName: this.state.roomMetadata.dealerName,
       hasActiveSet: this.state.roomMetadata.hasActiveSet,
       maxClients: this.state.roomMetadata.maxPlayers,
+      lastActivity: this.lastActivityTimestamp,
+      inactive: false,
     });
+  }
+  private updateRoomActivity(): void {
+    this.lastActivityTimestamp = Date.now();
+
+    // Reset inactivity timeout
+    this.roomInactivityTimeoutRef?.clear();
+    this.roomInactivityTimeoutRef = this.clock.setTimeout(() => {
+      this.log('Room inactive for 15 minutes - marking for removal');
+      // Mark room as inactive by setting metadata flag
+      this.setMetadata({
+        ...this.metadata,
+        inactive: true,
+        lastActivity: this.lastActivityTimestamp,
+      });
+    }, this.ROOM_INACTIVITY_TIMEOUT);
   }
 }
