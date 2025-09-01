@@ -147,38 +147,6 @@ export class GameRoom extends Room<GameState> {
     return new Promise((resolve) => this.clock.setTimeout(resolve, ms));
   }
 
-  async clearAllRooms() {
-    try {
-      console.log('LOBBY_CHANNEL:', this.LOBBY_CHANNEL);
-      console.log('Presence object exists:', !!this.presence);
-
-      const allRoomIds = await this.presence.smembers(this.LOBBY_CHANNEL);
-      console.log('AWS - Found room IDs to clear:', allRoomIds);
-      console.log('AWS - Room IDs count:', allRoomIds.length);
-
-      if (allRoomIds.length > 0) {
-        for (const roomId of allRoomIds) {
-          console.log('AWS - Removing room ID:', roomId);
-          const result = await this.presence.srem(this.LOBBY_CHANNEL, roomId);
-          console.log('AWS - Remove result:', result);
-        }
-        console.log('AWS - All rooms cleared successfully');
-      } else {
-        console.log('AWS - No room IDs found to clear');
-      }
-
-      // Verify they were actually removed
-      const remainingIds = await this.presence.smembers(this.LOBBY_CHANNEL);
-      console.log('AWS - Remaining room IDs after clear:', remainingIds);
-    } catch (error) {
-      console.error('AWS - Error clearing rooms:', error);
-      console.error(
-        'AWS - Error details:',
-        (error as Error)?.message || 'Unknown error'
-      );
-    }
-  }
-
   async onCreate(options: any) {
     this.roomId = await this.registerRoomId();
     if (!options.isPublic) {
@@ -186,8 +154,6 @@ export class GameRoom extends Room<GameState> {
     }
     this.setState(new GameState({}));
     this.clock.start();
-
-    await this.clearAllRooms();
 
     // START ROOM ACTIVITY TRACKING
     this.updateRoomActivity();

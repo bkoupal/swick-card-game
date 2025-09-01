@@ -1,8 +1,8 @@
 {
   "name": "swick-card-game",
-  "version": "0.0.0",
-  "author": "stopnoanime",
-  "homepage": "https://github.com/stopnoanime/swick-card-game",
+  "version": "1.0.0",
+  "author": "bkoupal",
+  "homepage": "https://github.com/bkoupal/swick-card-game",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

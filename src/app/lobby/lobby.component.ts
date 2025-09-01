@@ -96,14 +96,17 @@ export class LobbyComponent implements OnInit, OnDestroy {
     try {
       this.isLoading = true;
 
-      // Use the unified createRoom method with privacy setting
-      await this.gameService.createRoom(
-        this.playerName.value.trim(),
-        !this.isPrivateGame, // isPublic = !isPrivate
-        this.isPrivateGame
-          ? `${this.playerName.value.trim()}'s Private Game`
-          : `${this.playerName.value.trim()}'s Game`
-      );
+      // Create GameSetup for Quick Bot Game: 3 players, 2 bots
+      const gameSetup: GameSetup = {
+        totalPlayers: 3,
+        playerTypes: ['bot', 'bot'], // Players 2 and 3 are bots
+        botDifficulty: 'easy', // Default to easy for quick games
+        playerName: this.playerName.value.trim(),
+        isPrivate: this.isPrivateGame,
+      };
+
+      // Always create with bots for Quick Game
+      await this.gameService.createRoomWithBots(gameSetup);
     } catch (error: any) {
       console.error('Create room error:', error);
       this.error = error?.message || 'Failed to create room';
@@ -247,9 +250,9 @@ export class LobbyComponent implements OnInit, OnDestroy {
   // HELPER METHOD FOR BETTER ERROR DISPLAY
   getQuickGameDescription(): string {
     if (this.isPrivateGame) {
-      return "Create a private game for friends (won't appear in public lobby)";
+      return "Create a private 3-player bot game for practice (won't appear in public lobby)";
     }
-    return 'Create a public game that others can join from the lobby';
+    return 'Create a 3-player bot game that others can join from the lobby';
   }
 
   getAdvancedOptionsDescription(): string {
