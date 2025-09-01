@@ -2,17 +2,11 @@
 
 ![Game screenshot](screenshot.png)
 
-Swick is an online multiplayer Swick game. You can play it [here](https://stopnoanime.github.io/swick-card-game/).
+Swick is an online multiplayer Swick game. You can play it [here](https://play.swickcardgame.com).
 
 ## Architecture
 The game's frontend is made with Angular. The backend is made using Node.js and the [Colyseus](https://github.com/colyseus/colyseus) framework.
-The frontend is deployed on Github Pages. The backend is deployed on [Fly.io](https://fly.io/).
-
-## Tests
-The whole app is tested in multiple ways:
-- e2e testing - Frontend and Backend are tested together using Cypress
-- Frontend unit tests - Frontend components and logic are tested using Jasmine
-- Backend unit tests - Backend logic is tested using Jest
+The frontend is deployed on AWS S3 Pages. The backend is deployed on AWS EC2.
 
 ## Folder structure
     .
@@ -20,7 +14,6 @@ The whole app is tested in multiple ways:
     ├── cypress                 # Cypress e2e tests
     ├── backend                 # Colyseus backend
     │   ├── src                 # Backend sources
-    │   └── tests               # Backend Jest tests
     │   └── ...
     └── ...
 
