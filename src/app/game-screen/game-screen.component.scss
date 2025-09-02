@@ -123,12 +123,15 @@
 .player-holder {
   @apply bg-green-600;
 
-  @media (not (min-width: 640px)) {
-    @include playingTableMobile(8, 75vw);
-  }
+  // Force rectangle layout on all devices for consistent experience
+  @include playingTableMobile(8, 75vw);
 
   @screen sm {
-    @include playingTable(8, 250px, "100vh - 300px", 85vw);
+    @include playingTableMobile(8, 80vw);
+  }
+
+  @screen lg {
+    @include playingTableMobile(8, 70vw);
   }
 }
 

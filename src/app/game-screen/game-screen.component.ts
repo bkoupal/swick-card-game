@@ -33,7 +33,8 @@ export class GameScreenComponent {
   }
 
   getAllPlayers(smallScreen: boolean | null) {
-    return (smallScreen ? placePlayersAtMobileTable : placePlayersAtTable)(
+    // Force rectangle layout on ALL devices for better mobile experience
+    return placePlayersAtMobileTable(
       [...this.game.room!.state.players.values()],
       this.game.room!.sessionId,
       gameConfig.tablePositions
