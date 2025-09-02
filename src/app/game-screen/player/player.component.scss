@@ -10,16 +10,26 @@
 
 .hand {
   display: grid;
-  grid-auto-columns: calc(
-    var(--playing-card-width) * 0.7
-  ); // More space for larger cards
   grid-auto-flow: column;
 
+  // Default spacing for face-up cards (current player)
+  grid-auto-columns: calc(var(--playing-card-width) * 0.7);
+
   @media (max-width: 768px) {
-    grid-auto-columns: calc(
-      var(--playing-card-width) * 0.75
-    ); // Even more space on mobile
-    gap: 6px; // Small gap between cards for touch accuracy
+    grid-auto-columns: calc(var(--playing-card-width) * 0.75);
+    gap: 6px;
+  }
+}
+
+// Tighter spacing for face-down cards (other players)
+:host:not(.client-player) .hand {
+  grid-auto-columns: calc(
+    var(--playing-card-width) * 0.3
+  ); // Much tighter for face-down
+
+  @media (max-width: 768px) {
+    grid-auto-columns: calc(var(--playing-card-width) * 0.35);
+    gap: 2px; // Minimal gap
   }
 }
 
@@ -29,9 +39,11 @@
   outline-style: solid;
 }
 
-/* Default player box styling */
+// Ensure player name box appears above face-down cards
 :host > div:first-child {
   background-color: #525252; /* neutral-600 - default gray background */
+  position: relative; /* Enable z-index */
+  z-index: 15; /* Higher than cards (z-10) */
 }
 
 .dealer-box {
@@ -39,4 +51,6 @@
   outline-color: #fb923c; /* orange-400 */
   outline-width: 2px;
   outline-style: solid;
+  position: relative; /* Enable z-index */
+  z-index: 15; /* Higher than cards (z-10) */
 }

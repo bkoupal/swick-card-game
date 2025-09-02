@@ -24,6 +24,7 @@ export class PlayerComponent {
   @Input() endTimestamp: number = 0;
   @Input() clientIsPlayer: boolean = false;
   @Input() clientIsAdmin?: boolean = false;
+  @Input() debugPosition?: number;
 
   get hand() {
     return this.player?.hand || this.dealerHand;

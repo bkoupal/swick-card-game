@@ -154,7 +154,9 @@
       <app-player
         *ngFor="let player of getAllPlayers(smallScreen$ | async); index as i"
         [style.z-index]="10 - Math.round(getPlayerPosition(i) * 10)"
+        [class.client-player]="game.room!.sessionId === player?.sessionId"
         [player]="player"
+        [debugPosition]="i"
         [endTimestamp]="game.roundEndTimestamp"
         [isPlayerTurn]="
           game.room!.state.currentTurnPlayerId === player?.sessionId

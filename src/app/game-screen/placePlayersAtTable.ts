@@ -123,22 +123,74 @@ export function placePlayersAtTable(
  * @param tableSize Table size
  * @returns The properly positioned players
  */
+/**
+ * Mobile positioning - preserves game order while putting viewing player at bottom center
+ */
 export function placePlayersAtMobileTable(
   players: (Player | undefined)[],
   playerId: string,
   tableSize: number
 ) {
-  // Use the same 8-position logic as desktop
-  const arrangedPlayers = placePlayersAtTable(players, playerId, tableSize);
+  // Create result array for 8 positions
+  const result = new Array(8).fill(undefined);
 
-  // For mobile, rearrange the 8 positions into a vertical layout
-  const result = [];
-  for (let i = 0; i < Math.floor(tableSize / 2); i++) {
-    result.push(arrangedPlayers.shift());
-    result.push(arrangedPlayers.pop());
+  // Filter out undefined players
+  const realPlayers = players.filter((p) => p !== undefined);
+
+  if (realPlayers.length === 0) {
+    return result;
   }
 
-  result.push(arrangedPlayers.pop());
+  // Find the viewing player
+  const viewingPlayerIndex = realPlayers.findIndex(
+    (p) => p?.sessionId === playerId
+  );
+
+  if (viewingPlayerIndex === -1) {
+    // Fallback if viewing player not found
+    return players.concat(
+      new Array(tableSize - players.length).fill(undefined)
+    );
+  }
+
+  // ALWAYS place viewing player at position 7 (bottom center)
+  result[7] = realPlayers[viewingPlayerIndex];
+
+  // Define clockwise positions around the table (excluding positions 0, 2, 6, 7)
+  const clockwisePositions = [1, 3, 5, 4]; // clockwise from top-right
+
+  // Place other players in clockwise order relative to viewing player
+  let positionIndex = 0;
+
+  for (let i = 0; i < realPlayers.length; i++) {
+    if (i === viewingPlayerIndex) {
+      continue; // Skip viewing player (already placed)
+    }
+
+    if (positionIndex < clockwisePositions.length) {
+      result[clockwisePositions[positionIndex]] = realPlayers[i];
+      positionIndex++;
+    }
+  }
+
+  // Add position 6 for LearnerBot3 if we have enough players
+  if (realPlayers.length >= 5) {
+    // Find the 4th other player (5th total) and put in position 6
+    let otherPlayerCount = 0;
+    for (let i = 0; i < realPlayers.length; i++) {
+      if (i !== viewingPlayerIndex) {
+        otherPlayerCount++;
+        if (otherPlayerCount === 4) {
+          result[6] = realPlayers[i];
+          break;
+        }
+      }
+    }
+  }
+
+  // Ensure excluded positions stay empty
+  result[0] = undefined;
+  result[2] = undefined;
 
   return result;
 }
