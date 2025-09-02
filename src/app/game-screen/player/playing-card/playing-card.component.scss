@@ -1,5 +1,26 @@
 ::ng-deep :root {
-  --playing-card-width: calc(var(--table-unit) * 0.15);
+  --playing-card-width: calc(
+    var(--table-unit) * 0.3
+  ); // Increased from 0.2 to 0.3 (50% bigger)
+
+  @media (max-width: 768px) {
+    --playing-card-width: calc(
+      var(--table-unit) * 0.32
+    ); // Increased from 0.25 to 0.32 (28% bigger)
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    --playing-card-width: calc(
+      var(--table-unit) * 0.31
+    ); // Increased from 0.22 to 0.31 (41% bigger)
+  }
+
+  // Extra large for desktop
+  @media (min-width: 1025px) {
+    --playing-card-width: calc(
+      var(--table-unit) * 0.35
+    ); // Biggest cards for desktop
+  }
 }
 
 .card-container {
@@ -69,6 +90,24 @@
   &:active {
     transform: translateY(-4px);
   }
+
+  // Mobile-specific touch improvements
+  @media (max-width: 768px) {
+    // Ensure minimum touch target size (44px recommended by Apple/Google)
+    min-width: 44px;
+    min-height: 44px;
+
+    &:hover {
+      // Reduce hover effect on mobile since it's less relevant
+      transform: translateY(-4px);
+    }
+
+    &:active {
+      // More pronounced active state for mobile feedback
+      transform: translateY(-2px) scale(0.98);
+      filter: brightness(1.05);
+    }
+  }
 }
 
 .card-container {
@@ -78,6 +117,13 @@
     transform: translateY(-10px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
     border: 2px solid #3b82f6;
+
+    // Enhanced mobile selection feedback
+    @media (max-width: 768px) {
+      transform: translateY(-12px) scale(1.05);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.6);
+      border: 3px solid #3b82f6;
+    }
   }
 
   &.clickable-card {
@@ -86,6 +132,12 @@
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+      // Reduced hover effect on mobile
+      @media (max-width: 768px) {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      }
     }
   }
 }

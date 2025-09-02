@@ -64,7 +64,7 @@
 }
 
 @mixin playingTableMobile($players-count, $width) {
-  $table-unit: 210px;
+  $table-unit: 280px; // Increased from 210px to 280px for slightly larger cards
   $player-row-height: $table-unit * 0.45;
   $non-player-row-height: $table-unit * 0.3;
 

@@ -10,8 +10,17 @@
 
 .hand {
   display: grid;
-  grid-auto-columns: calc(var(--playing-card-width) * 0.5);
+  grid-auto-columns: calc(
+    var(--playing-card-width) * 0.7
+  ); // More space for larger cards
   grid-auto-flow: column;
+
+  @media (max-width: 768px) {
+    grid-auto-columns: calc(
+      var(--playing-card-width) * 0.75
+    ); // Even more space on mobile
+    gap: 6px; // Small gap between cards for touch accuracy
+  }
 }
 
 .primary-border {
