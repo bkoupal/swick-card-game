@@ -19,45 +19,52 @@
 
   <div class="flex flex-col col-start-1 row-start-1">
     <span
-      class="table-font text-center whitespace-nowrap"
+      [ngClass]="{
+        'text-center': true,
+        'whitespace-nowrap': true,
+        'table-font-dealer-name': type === 'dealer',
+        'table-font-player-name': type !== 'dealer'
+      }"
       [attr.data-cy]="player ? 'player-name' : null"
       *ngIf="player"
     >
       {{ type == "dealer" ? "Dealer" : player.displayName || "No Player" }}
       <!-- BOT INDICATOR -->
-      <span
-        *ngIf="player.isBot"
-        class="text-blue-400 ml-1"
-        [matTooltip]="getBotTooltip()"
-        matTooltipPosition="above"
-      >
-        🤖
-      </span>
+      <div>
+        <span
+          *ngIf="player.isBot"
+          class="text-blue-400 ml-1"
+          [matTooltip]="getBotTooltip()"
+          matTooltipPosition="above"
+        >
+          🤖
+        </span>
 
-      <!-- Going Set Indicators -->
-      <span
-        *ngIf="player.wentSet && player.setType === 'single'"
-        class="text-red-400 ml-1"
-        matTooltip="Went Set Single - owes {{ player.setAmount }}¢"
-      >
-        💸
-      </span>
-      <span
-        *ngIf="player.wentSet && player.setType === 'double'"
-        class="text-red-600 ml-1"
-        matTooltip="Went Set Double - owes {{ player.setAmount }}¢"
-      >
-        💸💸
-      </span>
+        <!-- Going Set Indicators -->
+        <span
+          *ngIf="player.wentSet && player.setType === 'single'"
+          class="text-red-400 ml-1"
+          matTooltip="Went Set Single - owes {{ player.setAmount }}¢"
+        >
+          💸
+        </span>
+        <span
+          *ngIf="player.wentSet && player.setType === 'double'"
+          class="text-red-600 ml-1"
+          matTooltip="Went Set Double - owes {{ player.setAmount }}¢"
+        >
+          💸💸
+        </span>
 
-      <!-- Tricks Won Indicator (during/after rounds) -->
-      <span
-        *ngIf="shouldShowTricksWon()"
-        class="text-yellow-400 text-xs ml-1"
-        matTooltip="{{ player.tricksWon }} trick(s) won"
-      >
-        🏆{{ player.tricksWon }}
-      </span>
+        <!-- Tricks Won Indicator (during/after rounds) -->
+        <span
+          *ngIf="shouldShowTricksWon()"
+          class="text-yellow-400 text-xs ml-1"
+          matTooltip="{{ player.tricksWon }} trick(s) won"
+        >
+          🏆{{ player.tricksWon }}
+        </span>
+      </div>
     </span>
 
     <app-money-counter

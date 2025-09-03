@@ -84,26 +84,46 @@
     @for $i from 1 through $players-count {
       &:nth-child(#{$i}) {
         @if $i == 1 {
+          // Position 1: Top center
           top: 0%;
           left: 50%;
           transform: translate(-50%, -50%);
           --card-translation-y: 100%;
           --card-translation-x: 0%;
         } @else if $i == $players-count {
+          // Position 8: Bottom center (current player)
           top: 100%;
           left: 50%;
           transform: translate(-50%, -50%);
           --card-translation-y: -100%;
           --card-translation-x: 0%;
         } @else {
-          left: ($i - 1) %2 * 100%;
-          top: calc($player-row-height + ($i - 2) * $non-player-row-height);
-          transform: translate(-50%);
+          // Side positions (2,3,4,5,6,7) - CORRECTED positioning
+
+          // Horizontal positioning: Move players further outward from center
+          @if $i % 2 == 0 {
+            // Even positions (2,4,6) = RIGHT side - move further right
+            left: 100%;
+          } @else {
+            // Odd positions (3,5,7) = LEFT side - move further left
+            left: 0%;
+          }
+
+          // Vertical positioning: Tighter spacing between levels
+          @if $i == 2 or $i == 3 {
+            top: 28%; // Top third (moved down slightly)
+          } @else if $i == 4 or $i == 5 {
+            top: 48%; // Middle (unchanged)
+          } @else if $i == 6 or $i == 7 {
+            top: 68%; // Bottom third (moved up slightly)
+          }
+
+          transform: translate(-50%, -50%); // Center the player boxes
           --card-translation-y: 0%;
-          --card-translation-x: #{100% - ($i - 1) %2 * 200%};
+          --card-translation-x: #{100% - ($i - 1) % 2 * 200%};
         }
 
-        //Sets the initial cards position
+        // Card holder positions (keep existing logic)
         ::ng-deep .card-holder {
           @if $i == 1 {
             transform: translateY(calc(50% + 23px));
@@ -153,6 +173,66 @@
   @screen 2xl {
     font-size: calc(var(--table-unit) * 0.024);
     line-height: calc(var(--table-unit) * 0.036);
+  }
+}
+
+// Add these new mobile-optimized font classes to your game-screen.component.scss file
+// Insert after the existing ::ng-deep .table-font section
+
+// 🎯 MOBILE-OPTIMIZED PLAYER NAME FONTS
+// These classes prioritize mobile readability while maintaining desktop balance
+
+::ng-deep .table-font-player-name {
+  // Larger base font size optimized for mobile readability
+  font-size: calc(
+    var(--table-unit) * 0.055
+  ); // ~15.4px on mobile (up from 9.8px)
+  line-height: calc(var(--table-unit) * 0.075); // ~21px line height
+  font-weight: 600; // Semi-bold for better visibility
+
+  // Tablet optimization
+  @media (min-width: 769px) and (max-width: 1024px) {
+    font-size: calc(var(--table-unit) * 0.048); // Slightly smaller on tablets
+    line-height: calc(var(--table-unit) * 0.065);
+  }
+
+  // Desktop scaling
+  @media (min-width: 1025px) {
+    font-size: calc(var(--table-unit) * 0.042); // Balanced for larger screens
+    line-height: calc(var(--table-unit) * 0.058);
+  }
+
+  // Extra large desktop (maintain proportions but don't get too big)
+  @screen 2xl {
+    font-size: calc(var(--table-unit) * 0.042); // Controlled growth
+    line-height: calc(var(--table-unit) * 0.058);
+  }
+}
+
+// Special variant for dealer names (slightly larger for emphasis)
+::ng-deep .table-font-dealer-name {
+  @extend .table-font-player-name;
+
+  // Dealer names are slightly larger for better hierarchy
+  font-size: calc(var(--table-unit) * 0.06); // ~16.8px on mobile
+  line-height: calc(var(--table-unit) * 0.08); // ~22.4px line height
+  font-weight: 700; // Bold for dealer distinction
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    font-size: calc(var(--table-unit) * 0.052);
+    line-height: calc(var(--table-unit) * 0.07);
+  }
+
+  @media (min-width: 1025px) {
+    font-size: calc(
+      var(--table-unit) * 0.095
+    ); // Extra large for desktop dealers
+    line-height: calc(var(--table-unit) * 0.115);
+  }
+
+  @screen 2xl {
+    font-size: calc(var(--table-unit) * 0.095); // Very prominent dealer names
+    line-height: calc(var(--table-unit) * 0.115);
   }
 }
 
