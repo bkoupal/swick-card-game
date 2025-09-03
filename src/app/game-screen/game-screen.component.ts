@@ -34,11 +34,14 @@ export class GameScreenComponent {
 
   getAllPlayers(smallScreen: boolean | null) {
     // Force rectangle layout on ALL devices for better mobile experience
-    return placePlayersAtMobileTable(
+    const result = placePlayersAtMobileTable(
       [...this.game.room!.state.players.values()],
       this.game.room!.sessionId,
-      gameConfig.tablePositions
+      gameConfig.tablePositions,
+      this.game.room!.state.dealerId
     );
+
+    return result;
   }
 
   getTrumpCardDisplay(): string {

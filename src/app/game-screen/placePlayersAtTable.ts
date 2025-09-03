@@ -89,156 +89,58 @@ export function placePlayersAtTable(
  * - Each player sees themselves at position 7 (bottom center)
  * - Other players maintain their relative clockwise positions
  */
+/**
+ * Mobile positioning - positions players around table based on join order and dealer position
+ * Each player sees themselves at bottom center with others in proper clockwise positions
+ */
 export function placePlayersAtMobileTable(
   players: (Player | undefined)[],
   playerId: string,
-  tableSize: number
+  tableSize: number,
+  dealerId?: string
 ) {
   // Create result array for 8 positions
   const result = new Array(8).fill(undefined);
+  const allPlayers = players.filter((p) => p !== undefined);
 
-  // Filter out undefined players to get actual players list
-  const realPlayers = players.filter((p) => p !== undefined);
-
-  if (realPlayers.length === 0) {
+  if (allPlayers.length === 0) {
     return result;
   }
 
-  // Find the viewing player
-  const viewingPlayerIndex = realPlayers.findIndex(
+  // Always place viewing player at position 7 (bottom center)
+  const viewingPlayerIndex = allPlayers.findIndex(
     (p) => p?.sessionId === playerId
   );
-
   if (viewingPlayerIndex === -1) {
-    // Fallback if viewing player not found
-    return players.concat(
-      new Array(tableSize - players.length).fill(undefined)
-    );
+    return result;
+  }
+  result[7] = allPlayers[viewingPlayerIndex];
+
+  // Create the order starting from the viewing player in join order
+  const orderedPlayers = [];
+
+  // Start from the player after viewing player and wrap around
+  for (let i = 1; i < allPlayers.length; i++) {
+    const playerIndex = (viewingPlayerIndex + i) % allPlayers.length;
+    orderedPlayers.push(allPlayers[playerIndex]);
   }
 
-  // ALWAYS place viewing player at position 7 (bottom center)
-  result[7] = realPlayers[viewingPlayerIndex];
+  // Map to your desired positions based on the visual index numbers you showed:
+  // You want: Join1→Index6, Join2→Index4, Join3→Index1, Join4→Index3, Join5→Index5
+  const targetPositions = [6, 4, 1, 3, 5]; // Order for next 5 players after viewing player
 
-  // Define available positions for other players (excluding positions 0, 2, and 7)
-  // These positions go clockwise around the table
-  const availablePositions = [1, 3, 4, 5, 6]; // max 5 other players besides viewing player
-
-  // Place other players in their relative positions
-  // We need to maintain the game order (clockwise from dealer's perspective)
-  let positionIndex = 0;
-
+  // Place players in their target positions
   for (
     let i = 0;
-    i < realPlayers.length && positionIndex < availablePositions.length;
+    i < orderedPlayers.length && i < targetPositions.length;
     i++
   ) {
-    if (i === viewingPlayerIndex) {
-      continue; // Skip viewing player (already placed at position 7)
-    }
-
-    // Calculate the relative position from viewing player
-    // In the original game order, find where this player sits relative to viewing player
-    let relativePosition = i - viewingPlayerIndex;
-
-    // Handle wraparound for clockwise positioning
-    if (relativePosition < 0) {
-      relativePosition += realPlayers.length;
-    }
-
-    // Map relative position to available table positions
-    // Start from position 1 (3pm) and go clockwise
-    const targetPosition =
-      availablePositions[(relativePosition - 1) % availablePositions.length];
-    result[targetPosition] = realPlayers[i];
+    result[targetPositions[i]] = orderedPlayers[i];
   }
 
-  // Ensure excluded positions stay empty (keep top-left quadrant clear)
-  result[0] = undefined; // 1:30pm - always empty
-  result[2] = undefined; // 4:30pm - always empty
-
-  return result;
-}
-
-/**
- * Alternative implementation for debugging - shows exact order preservation
- */
-export function placePlayersAtMobileTableDebug(
-  players: (Player | undefined)[],
-  playerId: string,
-  tableSize: number
-) {
-  console.log('=== MOBILE PLAYER POSITIONING DEBUG ===');
-
-  const result = new Array(8).fill(undefined);
-  const realPlayers = players.filter((p) => p !== undefined);
-
-  console.log(
-    'Original players array:',
-    realPlayers.map((p) => p?.displayName)
-  );
-
-  if (realPlayers.length === 0) {
-    return result;
-  }
-
-  const viewingPlayerIndex = realPlayers.findIndex(
-    (p) => p?.sessionId === playerId
-  );
-
-  console.log('Viewing player:', realPlayers[viewingPlayerIndex]?.displayName);
-  console.log('Viewing player index in original array:', viewingPlayerIndex);
-
-  if (viewingPlayerIndex === -1) {
-    console.log('Viewing player not found!');
-    return players.concat(
-      new Array(tableSize - players.length).fill(undefined)
-    );
-  }
-
-  // Place viewing player at bottom center (position 7)
-  result[7] = realPlayers[viewingPlayerIndex];
-  console.log('Placed viewing player at position 7');
-
-  // Available positions clockwise from top-right
-  const positions = [1, 3, 4, 5, 6]; // Skip 0, 2, 7
-  let posIndex = 0;
-
-  // Place other players maintaining game order
-  for (let i = 0; i < realPlayers.length && posIndex < positions.length; i++) {
-    if (i === viewingPlayerIndex) continue;
-
-    result[positions[posIndex]] = realPlayers[i];
-    console.log(
-      `Placed ${realPlayers[i]?.displayName} at position ${positions[posIndex]}`
-    );
-    posIndex++;
-  }
-
-  // Ensure excluded positions stay empty
+  // Keep positions 0 and 2 empty
   result[0] = undefined;
   result[2] = undefined;
 
-  console.log('Final positioning:');
-  result.forEach((player, index) => {
-    if (player || index === 7) {
-      const clockPos = [
-        '1:30pm',
-        '3pm',
-        '4:30pm',
-        '6pm',
-        '7:30pm',
-        '9pm',
-        '10:30pm',
-        '12pm',
-      ][index];
-      console.log(
-        `Position ${index} (${clockPos}): ${
-          player?.displayName || '[VIEWING PLAYER]'
-        }`
-      );
-    }
-  });
-
-  console.log('=== END MOBILE POSITIONING DEBUG ===');
   return result;
 }
