@@ -64,9 +64,27 @@
 }
 
 @mixin playingTableMobile($players-count, $width) {
-  $table-unit: 280px; // Increased from 210px to 280px for slightly larger cards
-  $player-row-height: $table-unit * 0.45;
-  $non-player-row-height: $table-unit * 0.3;
+  // SIMPLE RESPONSIVE: Different sizes for different devices
+  $table-unit: 220px; // Base size - between too small and too big
+
+  // Device-specific adjustments
+  @media (max-width: 480px) {
+    // Small iPhones
+    $table-unit: 200px;
+  }
+
+  @media (min-width: 481px) and (max-width: 768px) {
+    // Larger iPhones
+    $table-unit: 240px;
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    // iPads - use more space
+    $table-unit: 280px;
+  }
+
+  $player-row-height: $table-unit * 0.4;
+  $non-player-row-height: $table-unit * 0.27;
 
   @at-root ::ng-deep :root {
     --table-unit: #{$table-unit};
@@ -78,6 +96,7 @@
   width: $width;
   border-radius: 32px;
 
+  // Keep all your existing player positioning code below...
   > * {
     position: absolute;
 
@@ -98,41 +117,38 @@
           --card-translation-y: -100%;
           --card-translation-x: 0%;
         } @else {
-          // Side positions (2,3,4,5,6,7) - CORRECTED positioning
-
-          // Horizontal positioning: Move players further outward from center
+          // Side positions (2,3,4,5,6,7)
           @if $i % 2 == 0 {
-            // Even positions (2,4,6) = RIGHT side - move further right
             left: 100%;
           } @else {
-            // Odd positions (3,5,7) = LEFT side - move further left
             left: 0%;
           }
 
-          // Vertical positioning: Tighter spacing between levels
           @if $i == 2 or $i == 3 {
-            top: 28%; // Top third (moved down slightly)
+            top: 28%;
           } @else if $i == 4 or $i == 5 {
-            top: 48%; // Middle (unchanged)
+            top: 48%;
           } @else if $i == 6 or $i == 7 {
-            top: 68%; // Bottom third (moved up slightly)
+            top: 68%;
           }
 
-          transform: translate(-50%, -50%); // Center the player boxes
+          transform: translate(-50%, -50%);
           --card-translation-y: 0%;
           --card-translation-x: #{100% - ($i - 1) % 2 * 200%};
         }
 
-        // Card holder positions (keep existing logic)
+        // Card holder positions - ORIGINAL logic with small iPhone adjustment
         ::ng-deep .card-holder {
           @if $i == 1 {
             transform: translateY(calc(50% + 23px));
           } @else if $i == $players-count {
             transform: translateY(calc(-50% - 45px));
           } @else if $i % 2 == 0 {
-            transform: translateX(calc(-50% - $table-unit * 0.2));
+            // Right side - original logic with small iPhone push
+            transform: translateX(calc(-50% - #{$table-unit} * 0.05));
           } @else {
-            transform: translateX(calc(50% + $table-unit * 0.2));
+            // Left side - original logic with small iPhone push
+            transform: translateX(calc(50% + #{$table-unit} * 0.05));
           }
         }
       }
@@ -334,4 +350,12 @@
     margin: 5px;
     text-align: center;
   }
+}
+
+// MASTER CONTAINER: Fill screen, everything scales relative to this
+
+.game-actions-area {
+  flex-shrink: 0; // Never shrink
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.1); // Subtle background
 }

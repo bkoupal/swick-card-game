@@ -1,25 +1,18 @@
 ::ng-deep :root {
-  --playing-card-width: calc(
-    var(--table-unit) * 0.3
-  ); // Increased from 0.2 to 0.3 (50% bigger)
+  --playing-card-width: calc(var(--table-unit) * 0.26);
 
   @media (max-width: 768px) {
     --playing-card-width: calc(
-      var(--table-unit) * 0.32
-    ); // Increased from 0.25 to 0.32 (28% bigger)
+      var(--table-unit) * 0.24
+    ); // Slightly smaller on iPhone
   }
 
   @media (min-width: 769px) and (max-width: 1024px) {
-    --playing-card-width: calc(
-      var(--table-unit) * 0.31
-    ); // Increased from 0.22 to 0.31 (41% bigger)
+    --playing-card-width: calc(var(--table-unit) * 0.28); // iPad size
   }
 
-  // Extra large for desktop
   @media (min-width: 1025px) {
-    --playing-card-width: calc(
-      var(--table-unit) * 0.35
-    ); // Biggest cards for desktop
+    --playing-card-width: calc(var(--table-unit) * 0.32); // Desktop
   }
 }
 

@@ -18,23 +18,23 @@
       <mat-icon>link</mat-icon>
     </button>
 
-    <button
+    <!--button
       *ngIf="game.player?.admin"
       mat-mini-fab
       color="primary"
       matTooltip="You are the room's admin"
     >
       <mat-icon>star</mat-icon>
-    </button>
+    </button-->
 
-    <button
+    <!--button
       *ngIf="game.isDealer"
       mat-mini-fab
       color="accent"
       matTooltip="You are the dealer this hand"
     >
       <mat-icon>casino</mat-icon>
-    </button>
+    </button-->
 
     <button
       *ngIf="canChangeName()"
@@ -84,7 +84,7 @@
 
   <!-- Privacy Indicator -->
 
-  <div class="game-privacy-indicator" *ngIf="game.room?.state?.roomMetadata">
+  <!--div class="game-privacy-indicator" *ngIf="game.room?.state?.roomMetadata">
     <mat-chip-set>
       <mat-chip
         [color]="
@@ -102,7 +102,7 @@
         }}
       </mat-chip>
     </mat-chip-set>
-  </div>
+  </div-->
 
   <!-- Room ID display for private games -->
   <div
@@ -145,7 +145,7 @@
           >
             <app-card
               [card]="playedCard.card"
-              class="scale-50 sm:scale-75"
+              class="scale-75 sm:scale-75"
             ></app-card>
             <div style="font-size: 8px; margin-top: -8px; text-align: center">
               {{ getPlayerName(playedCard.playerId) }}
@@ -174,7 +174,7 @@
           >
             <app-card
               [card]="game.room!.state.currentTrick[5].card"
-              class="scale-50 sm:scale-75"
+              class="scale-75 sm:scale-75"
             ></app-card>
             <div style="font-size: 8px; margin-top: -8px; text-align: center">
               {{ getPlayerName(game.room!.state.currentTrick[5].playerId) }}
@@ -215,7 +215,7 @@
       <!-- Show trump card during trump selection phase -->
       <div
         *ngIf="game.room!.state.trumpCard && game.trumpSelectionPhase"
-        class="table-font mt-2"
+        class="table-font mt-[-175px]"
       >
         <div class="flex justify-center">
           <app-card [card]="game.room!.state.trumpCard"></app-card>
@@ -230,7 +230,7 @@
           game.room!.state.trumpCard &&
           !game.trumpSelectionPhase
         "
-        class="table-font mt-2"
+        class="table-font mt-[-175px]"
       >
         <div class="flex justify-center">
           <app-card
