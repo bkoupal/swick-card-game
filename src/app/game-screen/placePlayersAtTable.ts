@@ -73,14 +73,14 @@ export function placePlayersAtTable(
  * FIXED Mobile positioning - properly implements clockwise seating around table
  *
  * Table positions (8 total, but only 6 used):
- * 0: 1:30pm (top-right) - EXCLUDED (keep empty)
- * 1: 3pm (right-top)
- * 2: 4:30pm (right-bottom) - EXCLUDED (keep empty)
- * 3: 6pm (bottom-right)
- * 4: 7:30pm (bottom-left)
- * 5: 9pm (left-bottom)
- * 6: 10:30pm (left-top) - Available for 6th player
- * 7: 12pm (top-center) - Current player (viewing player always here)
+ * 0: 12:00pm (top-center) - EXCLUDED (keep empty)
+ * 1: 1:30pm (right-top)
+ * 2: 10:30pm (left-top) - EXCLUDED (keep empty)
+ * 3: 3:00pm (right-middle)
+ * 4: 9:00pm (left-middle)
+ * 5: 4:30pm (right-bottom)
+ * 6: 7:30pm (left-bottom)
+ * 7: 6pm (bottom-center) - Current player (viewing player always here)
  *
  * Game order logic:
  * - Players join room in order, creating game order

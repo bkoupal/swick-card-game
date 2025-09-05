@@ -371,3 +371,87 @@
   padding: 15px;
   background: rgba(0, 0, 0, 0.1); // Subtle background
 }
+
+/* Trump card positioning - FIXED: Position relative to table, not viewport */
+.trump-card-container {
+  position: absolute;
+  left: -10%;
+  top: 20%; /* Middle area positioning - should work now */
+  transform: translate(50%, -50%);
+  z-index: 20;
+
+  /* Desktop improvements */
+  @media (min-width: 1025px) {
+    left: -10%;
+    top: 20%;
+    transform: translate(0%, -50%) scale(0.9);
+  }
+
+  /* Ultra-wide desktop */
+  @media (min-width: 1400px) {
+    left: 0%;
+    top: 20%;
+    transform: translate(0%, -50%) scale(0.8);
+  }
+
+  /* Mobile adjustments */
+  @media (max-width: 768px) {
+    left: -5%;
+    top: 20%;
+    transform: translate(0%, -50%) scale(0.8);
+  }
+}
+
+/* Yellow background box around trump card - RESTORED to original size */
+.trump-card-yellow-box {
+  background-color: #fbbf24; /* yellow-400 */
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+  border: 2px solid #f59e0b; /* yellow-500 border */
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  /* Subtle animation */
+  animation: subtle-glow 3s ease-in-out infinite;
+
+  /* Mobile scaling */
+  @media (max-width: 768px) {
+    padding: 6px;
+    border-radius: 8px;
+    border-width: 1px;
+  }
+}
+
+/* Trump card label */
+.trump-card-label {
+  font-size: calc(var(--table-unit) * 0.05); /* Your chosen size */
+  font-weight: bold;
+  color: #92400e; /* yellow-800 - dark yellow for contrast */
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+
+  @media (max-width: 768px) {
+    font-size: calc(var(--table-unit) * 0.05); /* Same on mobile */
+  }
+}
+
+/* Subtle glow animation */
+@keyframes subtle-glow {
+  0%,
+  100% {
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+  }
+  50% {
+    box-shadow: 0 6px 16px rgba(251, 191, 36, 0.6);
+  }
+}
+
+/* Ensure trump card doesn't interfere with player interactions */
+.trump-card-container {
+  pointer-events: none; /* Trump card is display-only */
+}
