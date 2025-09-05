@@ -88,8 +88,8 @@
 
   // IPHONE PORTRAIT: Much tighter row spacing
   @media (max-width: 768px) and (orientation: portrait) {
-    $player-row-height: $table-unit * 0.32; // Reduced from 0.40
-    $non-player-row-height: $table-unit * 0.22; // Reduced from 0.27
+    $player-row-height: $table-unit * 0.34; // Reduced from 0.40
+    $non-player-row-height: $table-unit * 0.2; // Reduced from 0.27
   }
 
   @at-root ::ng-deep :root {
