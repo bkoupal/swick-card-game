@@ -1,3 +1,6 @@
+// 1. First, update the PlayingCardComponent to accept trump card info
+
+// UPDATE: src/app/game-screen/player/playing-card/playing-card.component.ts
 import {
   Component,
   HostBinding,
@@ -72,9 +75,22 @@ export class PlayingCardComponent {
   @Input() isClickable: boolean = false;
   @Output() cardClick = new EventEmitter<void>();
 
+  // NEW: Trump card identification inputs
+  @Input() isTrumpCard: boolean = false;
+  @Input() trumpSuit: string = '';
+  @Input() dealerKeptThisCard: boolean = false;
+
   onCardClick() {
     if (this.isClickable) {
       this.cardClick.emit();
     }
+  }
+
+  get isTrumpSuit(): boolean {
+    return this.card?.value?.suit === this.trumpSuit;
+  }
+
+  get showTrumpIndicator(): boolean {
+    return this.dealerKeptThisCard || (this.isTrumpCard && this.card.visible);
   }
 }

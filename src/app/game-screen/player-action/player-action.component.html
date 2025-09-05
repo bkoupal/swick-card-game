@@ -18,7 +18,7 @@
       </button>
     </div>
     <div class="text-xs text-center text-gray-400 mt-1">
-      Everyone antes {{ currentBet }}¢ + dealer pays {{ currentBet + 3 }}¢
+      Everyone antes {{ currentBet }}¢ | dealer pays {{ currentBet + 3 }}¢
     </div>
   </div>
 
@@ -293,13 +293,13 @@
       *ngIf="isDealer || !isWaitingForAnteSet"
       class="flex items-center w-full"
     >
-      <!-- UPDATED: Changed button text and behavior -->
+      <!-- UPDATED: Different button text for dealer vs non-dealer -->
       <button
         style="flex-grow: 100"
         (click)="readyChange.emit(!ready)"
         *ngIf="!ready"
       >
-        I'm Ready to Play
+        {{ getReadyButtonText() }}
       </button>
 
       <!-- Show a different state when ready - just a status indicator, not clickable -->

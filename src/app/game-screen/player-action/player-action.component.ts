@@ -71,4 +71,14 @@ export class PlayerActionsComponent {
     if (!this.isDealerFinalDiscard || !this.dealerKeptTrump) return '';
     return 'Go Set Single'; // Always single when choosing not to play
   }
+
+  /**
+   * Get the appropriate ready button text based on player role and game state
+   */
+  getReadyButtonText(): string {
+    if (this.isDealer && !this.hasGoingSetBonus) {
+      return "Ante Set. Let's Play";
+    }
+    return "I'm Ready to Play";
+  }
 }

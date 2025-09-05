@@ -157,6 +157,9 @@
           *ngFor="let card of hand?.cards; let i = index"
           [card]="shouldShowCards() ? card : getHiddenCard(card)"
           [isClickable]="canPlayCard(card)"
+          [isTrumpCard]="isTrumpCard(card)"
+          [trumpSuit]="gameState?.trumpSuit || ''"
+          [dealerKeptThisCard]="isDealerKeptTrumpCard(card)"
           (cardClick)="onCardClick(i)"
         >
         </app-card>

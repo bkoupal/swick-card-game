@@ -213,4 +213,28 @@ export class PlayerComponent {
     const difficulty = this.player.botDifficulty || 'easy';
     return difficultyLabels[difficulty] || 'Bot Player';
   }
+
+  /**
+   * Checks if a card is part of the trump suit
+   */
+  isTrumpCard(card: Card): boolean {
+    return card?.value?.suit === this.gameState?.trumpSuit;
+  }
+
+  /**
+   * Checks if this specific card is the trump card that the dealer kept
+   */
+  isDealerKeptTrumpCard(card: Card): boolean {
+    if (!this.gameState?.dealerKeptTrump) return false;
+    if (!this.isDealer) return false;
+
+    // Check if this card matches the trump card that was kept
+    const trumpCard = this.gameState?.trumpCard;
+    if (!trumpCard?.value || !card?.value) return false;
+
+    return (
+      card.value.suit === trumpCard.value.suit &&
+      card.value.value === trumpCard.value.value
+    );
+  }
 }

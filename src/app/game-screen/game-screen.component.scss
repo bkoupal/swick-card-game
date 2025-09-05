@@ -175,6 +175,12 @@
   @screen lg {
     @include playingTableMobile(8, 70vw);
   }
+
+  /* Hide app-player components at positions 1 and 3 (array indices 0 and 2) */
+  > app-player:nth-child(1),
+  > app-player:nth-child(3) {
+    display: none !important;
+  }
 }
 
 //Create font sizes that are relative to playing table size

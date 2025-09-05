@@ -46,38 +46,34 @@
     >
       <mat-icon>edit</mat-icon>
     </button>
+  </div>
 
-    <!-- Enhanced pot display with going set information -->
-    <!-- div *ngIf="game.room!.state.potValue > 0" class="table-font mt-1"-->
-    <div class="table-font mt-1">
-      <!--div class="flex flex-col items-center" -->
+  <!-- Enhanced pot display with going set information -->
+  <!-- div *ngIf="game.room!.state.potValue > 0" class="table-font mt-1"-->
+  <div class="absolute top-4 right-4 table-font z-50">
+    <div
+      class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg"
+    >
+      <!-- Main pot value -->
+      <div class="text-lg">💰 Pot: {{ game.room!.state.potValue }}¢</div>
+
+      <!-- Show trick values -->
+      <div class="text-sm text-green-200 mt-1">
+        Each trick: {{ getTrickValue() }}¢
+      </div>
+
+      <!-- Going set bonus indicator -->
       <div
-        class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg"
+        *ngIf="getNextRoundBonus() > 0"
+        class="text-yellow-400 text-sm mt-1 flex items-center"
       >
-        <!-- Main pot value -->
-        <div class="text-lg">💰 Pot: {{ game.room!.state.potValue }}¢</div>
+        <span class="mr-1">💸</span>
+        +{{ getNextRoundBonus() }}¢ next round
+      </div>
 
-        <!-- Show trick values -->
-        <div class="text-sm text-green-200 mt-1">
-          Each trick: {{ getTrickValue() }}¢
-        </div>
-
-        <!-- Going set bonus indicator -->
-        <div
-          *ngIf="getNextRoundBonus() > 0"
-          class="text-yellow-400 text-sm mt-1 flex items-center"
-        >
-          <span class="mr-1">💸</span>
-          +{{ getNextRoundBonus() }}¢ next round
-        </div>
-
-        <!-- Total pot preview for next round -->
-        <div
-          *ngIf="getNextRoundBonus() > 0"
-          class="text-green-400 text-xs mt-1"
-        >
-          (Next pot starts at {{ getNextRoundBonus() + 3 }}¢)
-        </div>
+      <!-- Total pot preview for next round -->
+      <div *ngIf="getNextRoundBonus() > 0" class="text-green-400 text-xs mt-1">
+        (Next pot starts at {{ getNextRoundBonus() + 3 }}¢)
       </div>
     </div>
   </div>

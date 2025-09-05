@@ -1,7 +1,10 @@
+<!-- UPDATE: src/app/game-screen/player/playing-card/playing-card.component.html -->
 <div
   class="card-container"
   [class.clickable-card]="isClickable"
   [class.selected]="card.selected"
+  [class.trump-card-kept]="dealerKeptThisCard"
+  [class.trump-suit-card]="isTrumpSuit && !dealerKeptThisCard"
   (click)="onCardClick()"
 >
   <div class="card" [@hiddenVisible]="card.visible">
@@ -41,6 +44,17 @@
         </div>
         <div class="card-value">
           {{ card.value?.value }}
+        </div>
+      </div>
+
+      <!-- Trump Card Indicators -->
+      <div class="trump-indicators" *ngIf="showTrumpIndicator">
+        <!-- Dealer Kept Trump Card - Crown Emoji -->
+        <div class="trump-crown" *ngIf="dealerKeptThisCard">👑</div>
+
+        <!-- Regular Trump Suit Indicator - Small Trump Symbol -->
+        <div class="trump-badge" *ngIf="isTrumpSuit && !dealerKeptThisCard">
+          T
         </div>
       </div>
     </div>

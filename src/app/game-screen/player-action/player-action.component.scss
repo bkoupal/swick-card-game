@@ -29,3 +29,26 @@
     }
   }
 }
+
+/* Simple Material Design color override - Updated for newer Angular Material */
+::ng-deep .mat-mdc-unelevated-button.mat-accent {
+  --mdc-filled-button-container-color: #16a34a; /* green-600 */
+  --mdc-outlined-button-outline-color: #16a34a;
+  background-color: #16a34a !important;
+}
+
+::ng-deep .mat-mdc-unelevated-button.mat-accent:hover {
+  --mdc-filled-button-container-color: #15803d; /* green-700 */
+  background-color: #15803d !important;
+}
+
+/* Also handle flat button variant just in case */
+::ng-deep .mat-mdc-flat-button.mat-accent {
+  --mdc-filled-button-container-color: #16a34a;
+  background-color: #16a34a !important;
+}
+
+::ng-deep .mat-mdc-flat-button.mat-accent:hover {
+  --mdc-filled-button-container-color: #15803d;
+  background-color: #15803d !important;
+}

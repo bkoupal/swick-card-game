@@ -2078,7 +2078,7 @@ export class GameRoom extends Room<GameState> {
   }
 
   /**
-   * Completes the current trick and determines the winner
+   * Enhanced trick progression with better logging - MODIFY EXISTING METHOD
    */
   private async completeTrick() {
     const trickWinner = this.determineTrickWinner(this.state.currentTrick);
@@ -2101,6 +2101,16 @@ export class GameRoom extends Room<GameState> {
         trickWinner.playerId
       } (${this.state.players.get(trickWinner.playerId)?.displayName})`
     );
+
+    // Log current hand sizes for debugging - ADDED
+    const knockedInPlayers = [...this.state.players.values()].filter(
+      (p) => p.ready && p.knockedIn
+    );
+    knockedInPlayers.forEach((player) => {
+      this.log(
+        `${player.displayName} has ${player.hand.cards.length} cards remaining`
+      );
+    });
 
     // Create completed trick record BEFORE showing the message
     const completedTrick = new CompletedTrick(this.state.currentTrickNumber);
@@ -2858,15 +2868,52 @@ export class GameRoom extends Room<GameState> {
   }
 
   /**
-   * Handles bot card play during tricks
+   * Enhanced bot card play handler with better error checking
    */
   private handleBotCardPlay(botId: string) {
     const bot = this.state.players.get(botId);
     if (!bot || !bot.isBot) return;
 
+    // CRITICAL FIX 1: Check if bot has already played in this trick
+    const hasAlreadyPlayed = this.state.currentTrick.some(
+      (play) => play.playerId === botId
+    );
+    if (hasAlreadyPlayed) {
+      this.log(
+        `${bot.displayName} has already played in this trick - skipping`
+      );
+      return;
+    }
+
+    // CRITICAL FIX 2: Check if bot has any cards left
+    if (!bot.hand.cards || bot.hand.cards.length === 0) {
+      this.log(`ERROR: ${bot.displayName} has no cards left to play!`);
+      // This should trigger end of round logic
+      this.checkForRoundEnd();
+      return;
+    }
+
+    // CRITICAL FIX 3: Verify it's actually this bot's turn
+    if (this.state.currentTurnPlayerId !== botId) {
+      this.log(
+        `${bot.displayName} tried to play but it's ${this.state.currentTurnPlayerId}'s turn`
+      );
+      return;
+    }
+
     const thinkingTime = this.getBotThinkingTime(bot.botDifficulty);
 
     this.clock.setTimeout(() => {
+      // Double-check conditions again after timeout
+      if (
+        !bot.hand.cards ||
+        bot.hand.cards.length === 0 ||
+        this.state.currentTurnPlayerId !== botId
+      ) {
+        this.log(`${bot.displayName} conditions changed during thinking time`);
+        return;
+      }
+
       const cardIndex = this.evaluateCardPlay(botId);
 
       if (cardIndex !== -1 && cardIndex < bot.hand.cards.length) {
@@ -2904,8 +2951,53 @@ export class GameRoom extends Room<GameState> {
         }
       } else {
         this.log(`ERROR: ${bot.displayName} could not determine card to play`);
+        this.log(
+          `Bot has ${bot.hand.cards.length} cards, attempted index: ${cardIndex}`
+        );
+
+        // EMERGENCY FALLBACK: Play any available card
+        if (bot.hand.cards.length > 0) {
+          this.log(`${bot.displayName} playing emergency fallback card`);
+          const emergencyCard = bot.hand.cards[0];
+          this.playCard(bot, emergencyCard, 0);
+        } else {
+          // This should end the round
+          this.log(`${bot.displayName} has no cards - checking for round end`);
+          this.checkForRoundEnd();
+        }
       }
     }, thinkingTime);
+  }
+
+  /**
+   * Enhanced round end checking - ADDED NEW METHOD
+   */
+  private checkForRoundEnd() {
+    const knockedInPlayers = [...this.state.players.values()].filter(
+      (p) => p.ready && p.knockedIn
+    );
+
+    // Check if any active player has no cards left
+    const playersWithoutCards = knockedInPlayers.filter(
+      (player) => !player.hand.cards || player.hand.cards.length === 0
+    );
+
+    if (playersWithoutCards.length > 0) {
+      this.log(
+        `Round ending - players without cards: ${playersWithoutCards
+          .map((p) => p.displayName)
+          .join(', ')}`
+      );
+      this.endRound();
+      return;
+    }
+
+    // Check if all tricks have been played (should be 3 tricks total)
+    if (this.state.currentTrickNumber > 3) {
+      this.log(`Round ending - all 3 tricks completed`);
+      this.endRound();
+      return;
+    }
   }
 
   // ADD this new helper method:
