@@ -1,16 +1,18 @@
 ::ng-deep :root {
-  --playing-card-width: calc(var(--table-unit) * 0.26);
+  --playing-card-width: calc(var(--table-unit) * 0.3);
 
   @media (max-width: 768px) {
-    --playing-card-width: calc(var(--table-unit) * 0.22); // Mobile
+    --playing-card-width: calc(
+      var(--table-unit) * 0.26
+    ); // Slightly smaller on iPhone
   }
 
   @media (min-width: 769px) and (max-width: 1024px) {
-    --playing-card-width: calc(var(--table-unit) * 0.28); // Tablet
+    --playing-card-width: calc(var(--table-unit) * 0.32); // iPad size
   }
 
   @media (min-width: 1025px) {
-    --playing-card-width: calc(var(--table-unit) * 0.32); // Desktop
+    --playing-card-width: calc(var(--table-unit) * 0.36); // Desktop
   }
 }
 
