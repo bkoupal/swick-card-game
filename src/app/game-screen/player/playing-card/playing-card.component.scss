@@ -2,13 +2,11 @@
   --playing-card-width: calc(var(--table-unit) * 0.26);
 
   @media (max-width: 768px) {
-    --playing-card-width: calc(
-      var(--table-unit) * 0.22
-    ); // Slightly smaller on iPhone
+    --playing-card-width: calc(var(--table-unit) * 0.22); // Mobile
   }
 
   @media (min-width: 769px) and (max-width: 1024px) {
-    --playing-card-width: calc(var(--table-unit) * 0.28); // iPad size
+    --playing-card-width: calc(var(--table-unit) * 0.28); // Tablet
   }
 
   @media (min-width: 1025px) {
