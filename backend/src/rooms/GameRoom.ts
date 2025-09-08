@@ -198,19 +198,19 @@ export class GameRoom extends Room<GameState> {
 
       // If dealer is becoming ready and there's a going set bonus, auto-set ante
       if (state && client.sessionId === this.state.dealerId) {
+        // Show ante message for ANY dealer ready (whether normal or going set bonus)
+        this.state.dealerSetAnteMessage = true;
+        this.state.dealerSetAnteAmount = `${player.bet}¢`;
+
+        this.clock.setTimeout(() => {
+          this.state.dealerSetAnteMessage = false;
+        }, 3000);
+
         if (this.state.nextRoundPotBonus > 0) {
           // Going set bonus active - ante is automatically 3¢
           for (const p of this.state.players.values()) {
             p.bet = 3; // Fixed dealer ante when players went set
           }
-
-          // ADD THIS: Show ante message for auto-set ante too
-          this.state.dealerSetAnteMessage = true;
-          this.state.dealerSetAnteAmount = '${player.bet}¢';
-
-          this.clock.setTimeout(() => {
-            this.state.dealerSetAnteMessage = false;
-          }, 3000);
 
           this.log(
             `Dealer ante automatically set to 3¢ (going set bonus: ${this.state.nextRoundPotBonus}¢)`
@@ -273,6 +273,7 @@ export class GameRoom extends Room<GameState> {
         return;
       }
 
+      this.log(`BET MESSAGE RECEIVED: ${newBet} from ${client.sessionId}`);
       this.log(`Dealer ${player.displayName} setting ante to ${newBet}¢`);
 
       // Set ante for all players
@@ -283,15 +284,7 @@ export class GameRoom extends Room<GameState> {
       // Mark that dealer has made ante decision
       this.state.dealerHasSetAnte = true;
 
-      // ADD THIS: Show ante message immediately when dealer sets it
-      this.state.dealerSetAnteMessage = true;
-      this.state.dealerSetAnteAmount = `${newBet}¢`;
-
-      // Hide message after 3 seconds
-      this.clock.setTimeout(() => {
-        this.state.dealerSetAnteMessage = false;
-      }, 3000);
-
+      // Show ante set message
       this.log(`Ante set to ${newBet}¢ for all players`);
     });
 
@@ -1222,6 +1215,15 @@ export class GameRoom extends Room<GameState> {
               p.bet = 3; // Fixed ante when players went set
             }
             this.state.dealerHasSetAnte = true;
+
+            // ADD THIS: Show ante message for bot dealer too
+            this.state.dealerSetAnteMessage = true;
+            this.state.dealerSetAnteAmount = '3¢';
+
+            this.clock.setTimeout(() => {
+              this.state.dealerSetAnteMessage = false;
+            }, 3000);
+
             this.log(
               `Bot dealer ${dealer.displayName} - ante fixed at 3¢ (going set bonus active)`
             );
@@ -1231,6 +1233,15 @@ export class GameRoom extends Room<GameState> {
               p.bet = 3;
             }
             this.state.dealerHasSetAnte = true;
+
+            // ADD THIS: Show ante message for bot dealer too
+            this.state.dealerSetAnteMessage = true;
+            this.state.dealerSetAnteAmount = '3¢';
+
+            this.clock.setTimeout(() => {
+              this.state.dealerSetAnteMessage = false;
+            }, 3000);
+
             this.log(`Bot dealer ${dealer.displayName} auto-set ante to 3¢`);
           }
           this.triggerNewRoundCheck(); // Re-check after setting ante
