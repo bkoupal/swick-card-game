@@ -201,8 +201,17 @@ export class GameRoom extends Room<GameState> {
         if (this.state.nextRoundPotBonus > 0) {
           // Going set bonus active - ante is automatically 3¢
           for (const p of this.state.players.values()) {
-            p.bet = 3; // Fixed ante when players went set
+            p.bet = 3; // Fixed dealer ante when players went set
           }
+
+          // ADD THIS: Show ante message for auto-set ante too
+          this.state.dealerSetAnteMessage = true;
+          this.state.dealerSetAnteAmount = '${player.bet}¢';
+
+          this.clock.setTimeout(() => {
+            this.state.dealerSetAnteMessage = false;
+          }, 3000);
+
           this.log(
             `Dealer ante automatically set to 3¢ (going set bonus: ${this.state.nextRoundPotBonus}¢)`
           );
@@ -273,6 +282,15 @@ export class GameRoom extends Room<GameState> {
 
       // Mark that dealer has made ante decision
       this.state.dealerHasSetAnte = true;
+
+      // ADD THIS: Show ante message immediately when dealer sets it
+      this.state.dealerSetAnteMessage = true;
+      this.state.dealerSetAnteAmount = `${newBet}¢`;
+
+      // Hide message after 3 seconds
+      this.clock.setTimeout(() => {
+        this.state.dealerSetAnteMessage = false;
+      }, 3000);
 
       this.log(`Ante set to ${newBet}¢ for all players`);
     });
@@ -376,6 +394,9 @@ export class GameRoom extends Room<GameState> {
           this.log(
             `Dealer kept trump: ${this.state.dealerTrumpValue} of ${this.state.trumpSuit}`
           );
+
+          // ADD THIS: Set state for message display
+          this.state.dealerKeptTrumpMessage = true;
         }
       } else {
         // Dealer discarded trump
@@ -388,7 +409,11 @@ export class GameRoom extends Room<GameState> {
         this.state.trumpSuit = this.state.trumpCard.value!.suit;
       }
 
-      this.startKnockInPhase();
+      // ADD DELAY before starting knock-in phase (similar to dealing cards)
+      this.delay(gameConfig.defaultMessageDelay).then(() => {
+        this.state.dealerKeptTrumpMessage = false; // Hide message
+        this.startKnockInPhase();
+      });
     });
 
     this.onMessage('knockIn', (client, knockIn: boolean) => {
@@ -1246,11 +1271,11 @@ export class GameRoom extends Room<GameState> {
     this.log(`Setting delayed round start`);
 
     this.state.nextRoundStartTimestamp =
-      Date.now() + gameConfig.delayedRoundStartTime;
+      Date.now() + gameConfig.roundStateDealingTime;
+
     this.delayedRoundStartRef = this.clock.setTimeout(() => {
-      this.state.nextRoundStartTimestamp = 0;
       this.startRound();
-    }, gameConfig.delayedRoundStartTime);
+    }, gameConfig.roundStateDealingTime);
   }
 
   /**
@@ -1329,6 +1354,7 @@ export class GameRoom extends Room<GameState> {
 
     // RESET GOING SET FIELDS FOR NEW ROUND
     this.state.dealerKeptTrump = false;
+    this.state.dealerKeptTrumpMessage = false;
     this.state.dealerTrumpValue = '';
     // Don't reset nextRoundPotBonus here - it's used for current round pot
 
@@ -1889,6 +1915,11 @@ export class GameRoom extends Room<GameState> {
     this.state.trumpCard = undefined;
     this.state.potValue = 0;
 
+    // Clear dealer kept trump flag
+    this.state.dealerKeptTrump = false;
+    this.state.dealerKeptTrumpMessage = false;
+    this.state.dealerTrumpValue = '';
+
     // Clear ante data
     this.state.dealerHasSetAnte = false;
 
@@ -2344,7 +2375,7 @@ export class GameRoom extends Room<GameState> {
     }
 
     // Wait for players to see the special hand result
-    await this.delay(5000);
+    await this.delay(10000);
 
     // CLEAR THE DISPLAY FIELDS
     this.state.specialHandWinner = '';

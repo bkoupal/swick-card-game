@@ -16,6 +16,7 @@ import {
 export class GameScreenComponent {
   location = location;
   Math = Math;
+  Date = Date;
 
   smallScreen$: Observable<boolean>;
 

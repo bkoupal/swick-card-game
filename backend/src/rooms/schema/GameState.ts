@@ -274,6 +274,12 @@ export class GameState extends Schema {
   @type('string') specialRoundMessage: string = '';
 
   @type(RoomMetadata) roomMetadata = new RoomMetadata();
+
+  @type('boolean') dealerKeptTrumpMessage: boolean = false;
+  @type('number') dealerKeptTrumpMessageTimestamp: number = 0;
+
+  @type('boolean') dealerSetAnteMessage: boolean = false;
+  @type('string') dealerSetAnteAmount: string = '';
 }
 
 export type roundOutcome = 'bust' | 'win' | 'lose' | 'draw' | '';

@@ -35,7 +35,7 @@ body {
     left: 50%; /* center horizontally */
     transform: translateX(-50%); /* shift back so it’s centered */
     z-index: 1000; /* keep it above other content */
-
+    text-align: center;
     animation-duration: 1s;
     animation-name: enter-animation;
     animation-fill-mode: forwards;

@@ -227,6 +227,14 @@
         </div>
       </div>
     </div>
+    <!-- Dealer Set Ante Message -->
+    <div
+      *ngIf="game.room!.state.dealerSetAnteMessage"
+      class="row-start-1 col-start-1 z-10 table-font-xl pill-popup text-center"
+    >
+      Dealer Set Ante: {{ game.room!.state.dealerSetAnteAmount }}
+    </div>
+    <!-- Round Starting Popup -->
     <div
       *ngIf="
         game.room!.state.roundState == 'idle' &&
@@ -237,7 +245,13 @@
     >
       Starting round
     </div>
-
+    <!-- Dealer Kept Trump Message -->
+    <div
+      *ngIf="game.room!.state.dealerKeptTrumpMessage"
+      class="row-start-1 col-start-1 z-10 table-font-xl pill-popup text-center"
+    >
+      Dealer Kept Trump
+    </div>
     <div
       *ngIf="game.trumpSelectionPhase && game.isDealer"
       class="row-start-1 col-start-1 z-10 table-font-xl pill-popup"

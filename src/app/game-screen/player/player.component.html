@@ -94,7 +94,7 @@
 
     <!-- "Kept Trump" indicator - ONLY for dealer who kept trump -->
     <div
-      *ngIf="isDealer && clientIsPlayer && hasDealerKeptTrump()"
+      *ngIf="isDealer && !clientIsPlayer && hasDealerKeptTrump()"
       class="text-xs bg-yellow-400 text-yellow-800 px-2 py-1 rounded-full mt-1 font-bold"
     >
       Kept Trump
