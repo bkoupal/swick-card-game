@@ -372,33 +372,33 @@
   background: rgba(0, 0, 0, 0.1); // Subtle background
 }
 
-/* Trump card positioning - FIXED: Position relative to table, not viewport */
+/* Trump card positioning - CENTER ABOVE DEALER */
 .trump-card-container {
   position: absolute;
-  left: -10%;
-  top: 20%; /* Middle area positioning - should work now */
-  transform: translate(50%, -50%);
+  left: 50%; /* Center horizontally */
+  bottom: 15%; /* Position above dealer (bottom player) */
+  transform: translate(-50%, 0%); /* Center the card */
   z-index: 20;
 
   /* Desktop improvements */
   @media (min-width: 1025px) {
-    left: -10%;
-    top: 20%;
-    transform: translate(0%, -50%) scale(0.9);
+    left: 50%;
+    bottom: 35%;
+    transform: translate(-50%, 0%) scale(0.9);
   }
 
   /* Ultra-wide desktop */
   @media (min-width: 1400px) {
-    left: 0%;
-    top: 20%;
-    transform: translate(0%, -50%) scale(0.8);
+    left: 50%;
+    bottom: 10%;
+    transform: translate(-50%, 0%) scale(0.8);
   }
 
   /* Mobile adjustments */
   @media (max-width: 768px) {
-    left: -5%;
-    top: 20%;
-    transform: translate(0%, -50%) scale(0.8);
+    left: 50%;
+    bottom: 27%;
+    transform: translate(-50%, 0%) scale(0.8);
   }
 }
 

@@ -79,6 +79,7 @@ export class PlayingCardComponent {
   @Input() isTrumpCard: boolean = false;
   @Input() trumpSuit: string = '';
   @Input() dealerKeptThisCard: boolean = false;
+  @Input() isDealerView: boolean = false;
 
   onCardClick() {
     if (this.isClickable) {

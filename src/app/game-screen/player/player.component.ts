@@ -237,4 +237,11 @@ export class PlayerComponent {
       card.value.value === trumpCard.value.value
     );
   }
+
+  hasDealerKeptTrump(): boolean {
+    return (
+      this.gameState?.dealerKeptTrump === true &&
+      this.player?.sessionId === this.gameState?.dealerId
+    );
+  }
 }

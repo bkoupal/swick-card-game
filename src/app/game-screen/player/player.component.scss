@@ -24,13 +24,47 @@
 // Tighter spacing for face-down cards (other players)
 :host:not(.client-player) .hand {
   grid-auto-columns: calc(
-    var(--playing-card-width) * 0.3
+    var(--playing-card-width) * 0.25
   ); // Much tighter for face-down
 
   @media (max-width: 768px) {
     grid-auto-columns: calc(var(--playing-card-width) * 0.35);
     gap: 2px; // Minimal gap
   }
+}
+
+:host:not(.client-player) {
+  --playing-card-width: calc(
+    var(--table-unit) * 0.18
+  ); // Smaller than default 0.26
+
+  @media (max-width: 768px) {
+    --playing-card-width: calc(
+      var(--table-unit) * 0.16
+    ); // Smaller than default 0.22
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    --playing-card-width: calc(
+      var(--table-unit) * 0.2
+    ); // Smaller than default 0.28
+  }
+
+  @media (min-width: 1025px) {
+    --playing-card-width: calc(
+      var(--table-unit) * 0.22
+    ); // Smaller than default 0.32
+  }
+}
+
+// Left side players (odd positions) - rotate one way
+:host:not(.client-player):nth-child(odd) .hand {
+  transform: rotate(90deg);
+}
+
+// Right side players (even positions) - rotate other way
+:host:not(.client-player):nth-child(even) .hand {
+  transform: rotate(-90deg);
 }
 
 .primary-border {

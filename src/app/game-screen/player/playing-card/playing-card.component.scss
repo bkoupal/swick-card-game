@@ -156,11 +156,22 @@
   height: 100%;
 }
 
-/* Trump card styling */
+/* Trump card styling - ONLY visible to dealer */
 .trump-card-kept {
-  .card-face-back {
-    border: 3px solid #fbbf24 !important; /* amber-400 - gold border for dealer's trump */
-    box-shadow: 0 0 12px rgba(251, 191, 36, 0.6) !important; /* glowing effect */
+  /* Only show gold border and glow to the dealer who kept it */
+  &.dealer-view-only {
+    .card-face-back {
+      border: 3px solid #fbbf24 !important; /* amber-400 - gold border for dealer's trump */
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.6) !important; /* glowing effect */
+    }
+  }
+
+  /* For other players, show normal card styling */
+  &:not(.dealer-view-only) {
+    .card-face-back {
+      border: 2px solid #3b82f6 !important; /* blue-500 - normal trump border */
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.4) !important;
+    }
   }
 }
 
@@ -171,7 +182,7 @@
   }
 }
 
-/* Trump indicators positioning */
+/* Trump indicators positioning - Enhanced for dealer */
 .trump-indicators {
   position: absolute;
   top: 50%;
@@ -181,7 +192,7 @@
   z-index: 5;
 }
 
-/* Crown emoji for dealer's kept trump card */
+/* Crown emoji for dealer's kept trump card - ONLY for dealer */
 .trump-crown {
   font-size: calc(var(--playing-card-width) * 0.25);
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);

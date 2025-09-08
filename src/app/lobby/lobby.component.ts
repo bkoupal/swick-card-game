@@ -37,7 +37,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
     private router: Router
   ) {
     // Auto-generate initial random name
-    this.generateRandomName();
+    // this.generateRandomName();
   }
 
   ngOnInit(): void {

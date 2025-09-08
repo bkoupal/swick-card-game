@@ -49,10 +49,12 @@
 
       <!-- Trump Card Indicators -->
       <div class="trump-indicators" *ngIf="showTrumpIndicator">
-        <!-- Dealer Kept Trump Card - Crown Emoji -->
-        <div class="trump-crown" *ngIf="dealerKeptThisCard">👑</div>
+        <!-- Dealer Kept Trump Card - Crown Emoji (ONLY for dealer) -->
+        <div class="trump-crown" *ngIf="dealerKeptThisCard && isDealerView">
+          👑
+        </div>
 
-        <!-- Regular Trump Suit Indicator - Small Trump Symbol -->
+        <!-- Regular Trump Suit Indicator -->
         <div class="trump-badge" *ngIf="isTrumpSuit && !dealerKeptThisCard">
           T
         </div>

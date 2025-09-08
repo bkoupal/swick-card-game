@@ -28,18 +28,17 @@
       [attr.data-cy]="player ? 'player-name' : null"
       *ngIf="player"
     >
+      <span
+        *ngIf="player.isBot"
+        class="text-blue-400 ml-1"
+        [matTooltip]="getBotTooltip()"
+        matTooltipPosition="above"
+      >
+        🤖
+      </span>
       {{ type == "dealer" ? "Dealer" : player.displayName || "No Player" }}
       <!-- BOT INDICATOR -->
       <div>
-        <span
-          *ngIf="player.isBot"
-          class="text-blue-400 ml-1"
-          [matTooltip]="getBotTooltip()"
-          matTooltipPosition="above"
-        >
-          🤖
-        </span>
-
         <!-- Going Set Indicators -->
         <span
           *ngIf="player.wentSet && player.setType === 'single'"
@@ -93,20 +92,28 @@
       DEALER
     </div>
 
-    <!-- PASSED INDICATOR - Shows when cards are hidden with FIXED WIDTH -->
+    <!-- "Kept Trump" indicator - ONLY for dealer who kept trump -->
     <div
-      *ngIf="hasPlayerPassed()"
-      class="col-start-1 row-start-1 flex items-center justify-center"
+      *ngIf="isDealer && clientIsPlayer && hasDealerKeptTrump()"
+      class="text-xs bg-yellow-400 text-yellow-800 px-2 py-1 rounded-full mt-1 font-bold"
     >
-      <div
-        class="table-font text-sm bg-gray-600 text-white px-3 py-1 rounded-md text-center font-bold opacity-90 whitespace-nowrap"
-        style="
-          width: fit-content;
-          max-width: calc(var(--playing-card-width) * 1.5);
-        "
-      >
-        PASSED
-      </div>
+      Kept Trump
+    </div>
+  </div>
+
+  <!-- PASSED INDICATOR - Shows when cards are hidden with FIXED WIDTH -->
+  <div
+    *ngIf="hasPlayerPassed()"
+    class="col-start-1 row-start-1 flex items-center justify-center"
+  >
+    <div
+      class="table-font text-sm bg-gray-600 text-white px-3 py-1 rounded-md text-center font-bold opacity-90 whitespace-nowrap"
+      style="
+        width: fit-content;
+        max-width: calc(var(--playing-card-width) * 1.5);
+      "
+    >
+      PASSED
     </div>
   </div>
 
@@ -160,6 +167,7 @@
           [isTrumpCard]="isTrumpCard(card)"
           [trumpSuit]="gameState?.trumpSuit || ''"
           [dealerKeptThisCard]="isDealerKeptTrumpCard(card)"
+          [isDealerView]="clientIsPlayer && isDealer"
           (cardClick)="onCardClick(i)"
         >
         </app-card>

@@ -1,8 +1,10 @@
 <!-- src/app/lobby/lobby.component.html - FIXED VERSION -->
 <div class="lobby-container">
   <div class="lobby-header">
-    <h1 class="lobby-title">♠️ ♥️ SWICK Game Lobby ♣️ ♦️</h1>
-    <p class="lobby-subtitle">Join an existing game or create your own</p>
+    <h1 class="lobby-title">♠️♥️ SWICK ♣️♦️</h1>
+    <p class="lobby-subtitle">
+      Game Lobby. Join an existing game or create your own
+    </p>
   </div>
 
   <!-- Player Name Input -->
@@ -15,6 +17,7 @@
           [formControl]="playerName"
           placeholder="Enter your player name"
           maxlength="20"
+          minlength="3"
         />
         <button
           mat-icon-button
@@ -27,8 +30,8 @@
       </mat-form-field>
     </div>
 
-    <!-- FIXED: Private Game Toggle -->
-    <div class="privacy-section">
+    <!-- Public/Private Game Toggle -->
+    <!--div class="privacy-section">
       <mat-slide-toggle
         [checked]="isPrivateGame"
         (change)="isPrivateGame = $event.checked"
@@ -43,23 +46,26 @@
       <p class="privacy-description">
         {{ getQuickGameDescription() }}
       </p>
-    </div>
+    </div-->
 
     <!-- Quick Create Section -->
     <div class="create-section">
+      <div *ngIf="!showAdvancedCreation">
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="createRoom()"
+          [disabled]="isLoading || playerName.invalid"
+          class="create-btn quick-create"
+          [matTooltip]="getQuickGameDescription()"
+        >
+          <mat-icon>{{ isPrivateGame ? "lock" : "add" }}</mat-icon>
+          {{ isPrivateGame ? "Quick Private Bot Game" : "Quick Bot Game" }}
+        </button>
+      </div>
       <button
         mat-raised-button
         color="primary"
-        (click)="createRoom()"
-        [disabled]="isLoading || playerName.invalid"
-        class="create-btn quick-create"
-      >
-        <mat-icon>{{ isPrivateGame ? "lock" : "add" }}</mat-icon>
-        {{ isPrivateGame ? "Quick Private Bot Game" : "Quick Bot Game" }}
-      </button>
-
-      <button
-        mat-button
         (click)="toggleAdvancedCreation()"
         class="toggle-advanced"
         [matTooltip]="getAdvancedOptionsDescription()"
@@ -67,7 +73,7 @@
         <mat-icon>{{
           showAdvancedCreation ? "expand_less" : "expand_more"
         }}</mat-icon>
-        Advanced Options
+        Advanced Game Options
       </button>
     </div>
 
