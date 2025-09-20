@@ -244,4 +244,14 @@ export class PlayerComponent {
       this.player?.sessionId === this.gameState?.dealerId
     );
   }
+
+  /**
+   * Check if this player has knocked in
+   */
+  hasPlayerKnocked(): boolean {
+    if (!this.player || !this.gameState) return false;
+
+    // Player knocked if they made a knock decision and knocked in
+    return this.player.hasKnockDecision && this.player.knockedIn;
+  }
 }

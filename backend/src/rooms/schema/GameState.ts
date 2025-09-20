@@ -225,6 +225,8 @@ export class Player extends Schema {
   // Bot Handling
   @type('boolean') isBot: boolean = false;
   @type('string') botDifficulty: string = '';
+
+  @type(['string']) shownMessages = new ArraySchema<string>();
 }
 
 export class GameState extends Schema {

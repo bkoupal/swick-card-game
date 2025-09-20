@@ -233,6 +233,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Stacked Messages System -->
+    <div class="stacked-messages-container">
+      <div
+        *ngFor="
+          let message of getActiveMessages();
+          let i = index;
+          trackBy: trackMessage
+        "
+        class="table-font-lg text-white px-4 py-2 rounded-lg shadow-lg text-center stacked-message font-semibold"
+        [ngClass]="message.class"
+      >
+        {{ message.text }}
+      </div>
+    </div>
+
     <!-- Dealer Set Ante Message -->
     <div
       *ngIf="game.room!.state.dealerSetAnteMessage"

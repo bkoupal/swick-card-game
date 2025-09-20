@@ -99,21 +99,36 @@
     >
       Kept Trump
     </div>
-  </div>
-
-  <!-- PASSED INDICATOR - Shows when cards are hidden with FIXED WIDTH -->
-  <div
-    *ngIf="hasPlayerPassed()"
-    class="col-start-1 row-start-1 flex items-center justify-center"
-  >
+    <!-- PASSED INDICATOR - Shows when cards are hidden with FIXED WIDTH -->
     <div
-      class="table-font text-sm bg-gray-600 text-white px-3 py-1 rounded-md text-center font-bold opacity-90 whitespace-nowrap"
-      style="
-        width: fit-content;
-        max-width: calc(var(--playing-card-width) * 1.5);
-      "
+      *ngIf="hasPlayerPassed()"
+      class="col-start-1 row-start-1 flex items-center justify-center"
     >
-      PASSED
+      <div
+        class="table-font text-sm bg-gray-600 text-white px-3 py-1 rounded-md text-center font-bold opacity-90 whitespace-nowrap"
+        style="
+          width: fit-content;
+          max-width: calc(var(--playing-card-width) * 1.5);
+        "
+      >
+        PASSED
+      </div>
+    </div>
+
+    <!-- KNOCKED INDICATOR - Shows when player knocked in -->
+    <div
+      *ngIf="hasPlayerKnocked()"
+      class="col-start-1 row-start-1 flex items-center justify-center"
+    >
+      <div
+        class="table-font text-sm bg-green-600 text-white px-3 py-1 rounded-md text-center font-bold opacity-90 whitespace-nowrap"
+        style="
+          width: fit-content;
+          max-width: calc(var(--playing-card-width) * 1.5);
+        "
+      >
+        KNOCKED
+      </div>
     </div>
   </div>
 

@@ -237,6 +237,31 @@
   }
 }
 
+::ng-deep .table-font-player-money {
+  // Same size as player names but without bold
+  font-size: calc(var(--table-unit) * 0.055); // Same as player name
+  line-height: calc(var(--table-unit) * 0.075);
+  font-weight: 400; // Normal weight (not bold)
+
+  // Tablet optimization
+  @media (min-width: 769px) and (max-width: 1024px) {
+    font-size: calc(var(--table-unit) * 0.048);
+    line-height: calc(var(--table-unit) * 0.065);
+  }
+
+  // Desktop scaling
+  @media (min-width: 1025px) {
+    font-size: calc(var(--table-unit) * 0.042);
+    line-height: calc(var(--table-unit) * 0.058);
+  }
+
+  // Extra large desktop
+  @screen 2xl {
+    font-size: calc(var(--table-unit) * 0.042);
+    line-height: calc(var(--table-unit) * 0.058);
+  }
+}
+
 // Special variant for dealer names (slightly larger for emphasis)
 ::ng-deep .table-font-dealer-name {
   @extend .table-font-player-name;
@@ -454,4 +479,57 @@
 /* Ensure trump card doesn't interfere with player interactions */
 .trump-card-container {
   pointer-events: none; /* Trump card is display-only */
+}
+
+.stacked-messages-container {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.stacked-message {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: all 0.4s ease;
+  max-width: 85%;
+  min-width: 200px;
+  animation: messageSlideIn 0.4s ease-out;
+  top: 15%; // Single position instead of calculated top
+
+  @media (max-width: 768px) {
+    max-width: 95%;
+    min-width: 150px;
+    padding: 6px 12px !important;
+    font-size: calc(var(--table-unit) * 0.04) !important;
+  }
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.stacked-message {
+  &.bg-blue-600 {
+    background-color: #2563eb !important;
+  }
+  &.bg-green-600 {
+    background-color: #16a34a !important;
+  }
+  &.bg-orange-600 {
+    background-color: #ea580c !important;
+  }
+  &.bg-red-600 {
+    background-color: #dc2626 !important;
+  }
 }

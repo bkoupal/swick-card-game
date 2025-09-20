@@ -1,5 +1,5 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import gameConfig from 'backend/src/game.config';
 import { map, Observable } from 'rxjs';
 import { GameService } from '../game.service';
@@ -8,17 +8,30 @@ import {
   placePlayersAtTable,
 } from './placePlayersAtTable';
 
+interface GameMessage {
+  id: string;
+  text: string;
+  type: string;
+  timestamp: number;
+  duration: number;
+  class: string;
+}
+
 @Component({
   selector: 'app-game-screen',
   templateUrl: './game-screen.component.html',
   styleUrls: ['./game-screen.component.scss'],
 })
-export class GameScreenComponent {
+export class GameScreenComponent implements OnInit {
   location = location;
   Math = Math;
   Date = Date;
-
   smallScreen$: Observable<boolean>;
+
+  messageQueue: GameMessage[] = [];
+  activeMessages: GameMessage[] = [];
+  shownMessageKeys: Set<string> = new Set();
+  messageProcessingTimer: any;
 
   constructor(public game: GameService, public breakpoint: BreakpointObserver) {
     this.smallScreen$ = breakpoint
@@ -202,5 +215,222 @@ export class GameScreenComponent {
       this.game.room?.state.roundState === 'end' &&
       this.game.room?.state.specialRoundOutcome === 'dealer-auto-win'
     );
+  }
+
+  /**
+   * Get discard/draw status message for display at top of table
+   */
+  getDiscardDrawMessage(): string | null {
+    if (!this.game.room?.state) return null;
+
+    // Only show during discard-draw phase
+    if (this.game.room.state.roundState !== 'discard-draw') return null;
+
+    const players = [...this.game.room.state.players.values()];
+    const knockedInPlayers = players.filter((p) => p.ready && p.knockedIn);
+    const completedPlayers = knockedInPlayers.filter(
+      (p) => p.hasDiscardDecision
+    );
+
+    if (knockedInPlayers.length === 0) return null;
+
+    // If all players completed, don't show message
+    if (completedPlayers.length === knockedInPlayers.length) return null;
+
+    // Show current player's discard status
+    const currentPlayer = players.find(
+      (p) => p.sessionId === this.game.room?.state.currentDiscardPlayerId
+    );
+    if (!currentPlayer) return null;
+
+    return `${currentPlayer.displayName} is discarding/drawing cards`;
+  }
+
+  /**
+   * Get summary of what players discarded/drew after discard phase
+   */
+  getDiscardDrawSummary(): string | null {
+    if (!this.game.room?.state) return null;
+
+    // Only show briefly after discard-draw phase completes, before trick-taking starts
+    if (this.game.room.state.roundState !== 'turns') return null;
+
+    const players = [...this.game.room.state.players.values()];
+    const knockedInPlayers = players.filter((p) => p.ready && p.knockedIn);
+
+    if (knockedInPlayers.length === 0) return null;
+
+    // Create summary of what each player did
+    const summaries: string[] = [];
+
+    for (const player of knockedInPlayers) {
+      const cardsDiscarded = player.discardedCards?.length || 0;
+      if (cardsDiscarded === 0) {
+        summaries.push(`${player.displayName}: Kept all`);
+      } else {
+        summaries.push(`${player.displayName}: Drew ${cardsDiscarded}`);
+      }
+    }
+
+    return summaries.join(' • ');
+  }
+
+  getActiveMessages(): GameMessage[] {
+    console.log('📋 Active messages requested:', this.activeMessages.length);
+    return this.activeMessages;
+  }
+
+  trackMessage(index: number, message: GameMessage): string {
+    return message.id;
+  }
+
+  addGameMessage(
+    text: string,
+    type: string,
+    duration = 4000,
+    cssClass = 'bg-blue-600'
+  ) {
+    console.log('📨 Adding message:', { text, type, cssClass });
+
+    const message: GameMessage = {
+      id: `${type}-${Date.now()}-${Math.random()}`,
+      text,
+      type,
+      timestamp: Date.now(),
+      duration,
+      class: cssClass,
+    };
+
+    this.messageQueue.push(message);
+    console.log('📬 Message queue length:', this.messageQueue.length);
+
+    // Only process if no messages are currently active
+    if (this.activeMessages.length === 0) {
+      this.processMessageQueue();
+    }
+  }
+
+  // Update the removeMessage method to clean up tracking
+  private removeMessage(messageId: string) {
+    this.activeMessages = this.activeMessages.filter((m) => m.id !== messageId);
+    // Process any remaining queued messages
+    if (this.messageQueue.length > 0) {
+      setTimeout(() => this.processMessageQueue(), 200);
+    }
+  }
+
+  // Update the checkForDiscardDrawMessages method with better message key tracking
+  private checkForDiscardDrawMessages() {
+    if (!this.game.room?.state) return;
+
+    const players = [...this.game.room.state.players.values()];
+
+    // Show "player is discarding" messages
+    if (this.game.room.state.roundState === 'discard-draw') {
+      const currentPlayer = players.find(
+        (p) => p.sessionId === this.game.room?.state.currentDiscardPlayerId
+      );
+      if (currentPlayer) {
+        const messageKey = `discard-turn-start-${this.game.room.state.roundState}`;
+        const hasShownMessage =
+          currentPlayer.shownMessages?.includes(messageKey);
+        const uniqueKey = `current-${currentPlayer.sessionId}-${messageKey}`;
+
+        if (hasShownMessage && !this.hasActiveMessage(uniqueKey)) {
+          this.shownMessageKeys.add(uniqueKey);
+          this.addGameMessage(
+            `${currentPlayer.displayName} is choosing cards to discard`,
+            `discard-draw-current-${currentPlayer.sessionId}`,
+            4000,
+            'bg-blue-600'
+          );
+          return; // Exit early to prevent multiple messages at once
+        }
+      }
+    }
+
+    // Show completed discard messages (but only one at a time)
+    for (const player of players) {
+      if (player.hasDiscardDecision) {
+        const messageKey = `discard-completed-${this.game.room.state.roundState}`;
+        const hasShownMessage = player.shownMessages?.includes(messageKey);
+        const uniqueKey = `completed-${player.sessionId}-${messageKey}`;
+
+        if (hasShownMessage && !this.hasActiveMessage(uniqueKey)) {
+          this.shownMessageKeys.add(uniqueKey);
+          const cardsDiscarded = player.discardedCards?.length || 0;
+          const message =
+            cardsDiscarded === 0
+              ? `${player.displayName} kept all cards`
+              : `${player.displayName} drew ${cardsDiscarded} card${
+                  cardsDiscarded > 1 ? 's' : ''
+                }`;
+
+          this.addGameMessage(
+            message,
+            `discard-result-completed-${player.sessionId}`,
+            4000,
+            'bg-green-600'
+          );
+          return; // Exit early to show one message at a time
+        }
+      }
+    }
+  }
+
+  private processMessageQueue() {
+    // Clear any existing timer
+    if (this.messageProcessingTimer) {
+      clearTimeout(this.messageProcessingTimer);
+    }
+
+    // Only process one message at a time with proper spacing
+    if (this.messageQueue.length > 0 && this.activeMessages.length === 0) {
+      const message = this.messageQueue.shift()!;
+      this.activeMessages.push(message);
+
+      // Set timer to remove this message
+      setTimeout(() => {
+        this.removeMessage(message.id);
+      }, message.duration);
+    }
+
+    // If there are still queued messages, process next one after current one finishes
+    if (this.messageQueue.length > 0) {
+      this.messageProcessingTimer = setTimeout(() => {
+        this.processMessageQueue();
+      }, 500); // Process next message 500ms after current one starts
+    }
+  }
+
+  private hasActiveMessage(messageKey: string): boolean {
+    // Check both active messages and our tracking set
+    return (
+      this.activeMessages.some((msg) => msg.id.includes(messageKey)) ||
+      this.shownMessageKeys.has(messageKey)
+    );
+  }
+
+  private clearShownMessages() {
+    this.shownMessageKeys.clear();
+  }
+  ngOnInit() {
+    // ... existing ngOnInit code
+
+    // Track round state changes to clear shown messages
+    let lastRoundState = '';
+
+    // Set up interval to check for new messages
+    setInterval(() => {
+      // Clear shown messages when round state changes
+      if (this.game.room?.state?.roundState !== lastRoundState) {
+        if (lastRoundState !== '') {
+          this.clearShownMessages();
+        }
+        lastRoundState = this.game.room?.state?.roundState || '';
+      }
+
+      this.checkForDiscardDrawMessages();
+    }, 1000); // Increased to 1 second to reduce spam
   }
 }

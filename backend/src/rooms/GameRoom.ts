@@ -463,6 +463,16 @@ export class GameRoom extends Room<GameState> {
       )
         return;
 
+      // Prevent duplicate trump decisions
+      const dealer = this.state.players.get(client.sessionId);
+      if (!dealer) return;
+
+      // Check if dealer already made trump decision
+      if (this.state.trumpSuit) {
+        this.log(`Dealer already made trump decision - ignoring duplicate`);
+        return;
+      }
+
       this.log(`Dealer ${keep ? 'keeps' : 'discards'} trump card`, client);
 
       if (keep) {
@@ -802,6 +812,9 @@ export class GameRoom extends Room<GameState> {
           return;
         }
       }
+
+      // Mark discard completion message as ready to show
+      this.markMessageShown(player.sessionId, 'discard-completed');
 
       player.hasDiscardDecision = true;
       this.startNextDiscardTurn();
@@ -1479,6 +1492,8 @@ export class GameRoom extends Room<GameState> {
   }
 
   private async startRound() {
+    // Clear shown messages at start of each round
+    this.clearAllShownMessages();
     this.log(`Starting dealing phase`);
 
     this.state.roundState = 'dealing';
@@ -1749,6 +1764,9 @@ export class GameRoom extends Room<GameState> {
 
     if (nextPlayer) {
       this.state.currentDiscardPlayerId = nextPlayer.sessionId;
+      // Mark that we should show "player is discarding" message
+      this.markMessageShown(nextPlayer.sessionId, 'discard-turn-start');
+
       this.log(
         `It's ${nextPlayer.displayName}'s turn to discard/draw (clockwise order)`
       );
@@ -1757,7 +1775,7 @@ export class GameRoom extends Room<GameState> {
       // Trigger bot decisions if next player is a bot
       this.triggerBotDecisions();
     } else {
-      // ✅ FIX: All non-dealers have made discard decisions
+      // All non-dealers have made discard decisions
       // NOW we ask the dealer to make their knock decision
       this.state.currentDiscardPlayerId = '';
 
@@ -1770,7 +1788,7 @@ export class GameRoom extends Room<GameState> {
 
       // Check if dealer has already made knock decision
       if (!dealer.hasKnockDecision) {
-        // ✅ FIX: Now ask dealer to knock in (after non-dealers finished discard/draw)
+        // Now ask dealer to knock in (after non-dealers finished discard/draw)
         this.log(
           `Non-dealers finished discard/draw - now dealer's turn to knock`
         );
@@ -1784,6 +1802,8 @@ export class GameRoom extends Room<GameState> {
         // Dealer already made knock decision, check if they knocked in
         if (dealer.knockedIn && !dealer.hasDiscardDecision) {
           // Dealer knocked in but hasn't made discard decision yet
+          // Mark dealer's turn message
+          this.markMessageShown(dealer.sessionId, 'discard-turn-start');
           this.log(`Dealer's turn to discard/draw`);
           this.state.currentDiscardPlayerId = this.state.dealerId;
           this.setInactivitySkipTimeout();
@@ -2910,6 +2930,9 @@ export class GameRoom extends Room<GameState> {
           return;
         }
 
+        // Mark completion message for bots who keep all cards
+        this.markMessageShown(bot.sessionId, 'discard-completed');
+
         bot.hasDiscardDecision = true;
         this.startNextDiscardTurn();
       } else {
@@ -2962,6 +2985,9 @@ export class GameRoom extends Room<GameState> {
             }
           }
 
+          // Mark completion message for bots who discard/draw
+          this.markMessageShown(bot.sessionId, 'discard-completed');
+
           bot.hasDiscardDecision = true;
           this.startNextDiscardTurn();
         }
@@ -2983,6 +3009,9 @@ export class GameRoom extends Room<GameState> {
 
       // Remove the selected card
       bot.hand.cards = bot.hand.cards.filter((card) => !card.selected);
+
+      // Mark completion message for bot dealer final discard
+      this.markMessageShown(bot.sessionId, 'discard-completed');
       bot.hasDiscardDecision = true;
 
       this.log(
@@ -3595,5 +3624,40 @@ export class GameRoom extends Room<GameState> {
         lastActivity: this.lastActivityTimestamp,
       });
     }, this.ROOM_INACTIVITY_TIMEOUT);
+  }
+
+  /**
+   * Mark a message as shown for a specific player
+   */
+  private markMessageShown(playerId: string, messageType: string): void {
+    const player = this.state.players.get(playerId);
+    if (!player) return;
+
+    const messageKey = `${messageType}-${this.state.roundState}`;
+    if (!player.shownMessages.includes(messageKey)) {
+      player.shownMessages.push(messageKey);
+      this.log(`Marked message shown: ${messageKey} for ${player.displayName}`);
+    }
+  }
+
+  /**
+   * Check if a message has been shown for a specific player
+   */
+  private hasMessageBeenShown(playerId: string, messageType: string): boolean {
+    const player = this.state.players.get(playerId);
+    if (!player) return false;
+
+    const messageKey = `${messageType}-${this.state.roundState}`;
+    return player.shownMessages.includes(messageKey);
+  }
+
+  /**
+   * Clear all shown messages for all players (called at round start)
+   */
+  private clearAllShownMessages(): void {
+    for (const player of this.state.players.values()) {
+      player.shownMessages.clear();
+    }
+    this.log('Cleared all shown messages for new round');
   }
 }
