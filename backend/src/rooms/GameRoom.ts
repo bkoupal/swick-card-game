@@ -147,6 +147,89 @@ export class GameRoom extends Room<GameState> {
     return new Promise((resolve) => this.clock.setTimeout(resolve, ms));
   }
 
+  /**
+   * Add player ante to pot immediately when they become ready
+   */
+  private addPlayerAnteToPot(playerId: string) {
+    const player = this.state.players.get(playerId);
+    if (!player) return;
+
+    // Set current ante amount for display
+    this.state.currentAnteAmount = player.bet;
+
+    // Calculate ante amount based on SWICK rules
+    let anteAmount = 0;
+
+    if (this.state.nextRoundPotBonus > 0) {
+      // Going set bonus scenario - only dealer pays ante
+      if (playerId === this.state.dealerId) {
+        anteAmount = gameConfig.dealerExtraAnte; // Dealer pays 3¢ extra ante only
+      } else {
+        anteAmount = 0; // Other players get free ride
+      }
+    } else {
+      // Normal scenario - everyone pays
+      if (playerId === this.state.dealerId) {
+        anteAmount = player.bet + gameConfig.dealerExtraAnte; // Dealer pays base + extra
+      } else {
+        anteAmount = player.bet; // Non-dealers pay base ante
+      }
+    }
+
+    if (anteAmount > 0) {
+      player.money -= anteAmount;
+      this.state.potValue += anteAmount;
+      this.log(
+        `${player.displayName} antes ${anteAmount}¢ (pot now ${this.state.potValue}¢)`
+      );
+    } else {
+      this.log(
+        `${player.displayName} gets free ride (players went set last round)`
+      );
+    }
+  }
+
+  /**
+   * Remove player ante from pot if they unready
+   */
+  private removePlayerAnteFromPot(playerId: string) {
+    const player = this.state.players.get(playerId);
+    if (!player) return;
+
+    // Calculate ante amount that was added (same logic as above)
+    let anteAmount = 0;
+
+    if (this.state.nextRoundPotBonus > 0) {
+      if (playerId === this.state.dealerId) {
+        anteAmount = gameConfig.dealerExtraAnte;
+      } else {
+        anteAmount = 0;
+      }
+    } else {
+      if (playerId === this.state.dealerId) {
+        anteAmount = player.bet + gameConfig.dealerExtraAnte;
+      } else {
+        anteAmount = player.bet;
+      }
+    }
+
+    if (anteAmount > 0) {
+      player.money += anteAmount; // Refund the ante
+      this.state.potValue -= anteAmount; // Remove from pot
+      this.log(
+        `${player.displayName} unready - refunded ${anteAmount}¢ (pot now ${this.state.potValue}¢)`
+      );
+    }
+
+    // Update current ante amount if no ready players left
+    const readyPlayers = [...this.state.players.values()].filter(
+      (p) => p.ready
+    );
+    if (readyPlayers.length === 0) {
+      this.state.currentAnteAmount = 0;
+    }
+  }
+
   async onCreate(options: any) {
     this.roomId = await this.registerRoomId();
     if (!options.isPublic) {
@@ -231,6 +314,14 @@ export class GameRoom extends Room<GameState> {
       }
 
       this.log(`Ready state change: ${state}`, client);
+      // NEW: Track current ante amount for display (no money collection yet)
+      if (state && !player.ready) {
+        // Player is becoming ready - add their ante to pot immediately
+        this.addPlayerAnteToPot(client.sessionId);
+      } else if (!state && player.ready) {
+        // Player is becoming unready - remove their ante from pot
+        this.removePlayerAnteFromPot(client.sessionId);
+      }
       player.ready = state;
       this.triggerNewRoundCheck();
       this.updateRoomMetadata();
@@ -1204,48 +1295,63 @@ export class GameRoom extends Room<GameState> {
     // Get current dealer
     const dealer = this.state.players.get(this.state.dealerId);
 
+    // ADD THESE DEBUG LOGS:
+    this.log(`=== BOT DEALER DEBUG ===`);
+    this.log(`Dealer ID: ${this.state.dealerId}`);
+    this.log(`Dealer exists: ${!!dealer}`);
+    this.log(`Dealer is bot: ${dealer?.isBot}`);
+    this.log(`Dealer has set ante: ${this.state.dealerHasSetAnte}`);
+    this.log(`Round state: ${this.state.roundState}`);
+
     // HANDLE BOT DEALER ANTE SETTING FIRST
     if (dealer?.isBot && !this.state.dealerHasSetAnte) {
+      this.log(`BOT DEALER CONDITION MET - Starting ante setting`);
       this.clock.setTimeout(() => {
-        if (this.state.roundState === 'idle' && !this.state.dealerHasSetAnte) {
-          // Check if there's a going set bonus (players went set last round)
-          if (this.state.nextRoundPotBonus > 0) {
-            // Going set bonus active - ante is automatically 3¢, no choice
-            for (const p of this.state.players.values()) {
-              p.bet = 3; // Fixed ante when players went set
-            }
-            this.state.dealerHasSetAnte = true;
+        this.log(`BOT DEALER TIMEOUT TRIGGERED`);
 
-            // ADD THIS: Show ante message for bot dealer too
-            this.state.dealerSetAnteMessage = true;
-            this.state.dealerSetAnteAmount = '3¢';
-
-            this.clock.setTimeout(() => {
-              this.state.dealerSetAnteMessage = false;
-            }, 3000);
-
-            this.log(
-              `Bot dealer ${dealer.displayName} - ante fixed at 3¢ (going set bonus active)`
-            );
-          } else {
-            // Normal round - bot dealer auto-sets ante to 3¢ (default)
-            for (const p of this.state.players.values()) {
-              p.bet = 3;
-            }
-            this.state.dealerHasSetAnte = true;
-
-            // ADD THIS: Show ante message for bot dealer too
-            this.state.dealerSetAnteMessage = true;
-            this.state.dealerSetAnteAmount = '3¢';
-
-            this.clock.setTimeout(() => {
-              this.state.dealerSetAnteMessage = false;
-            }, 3000);
-
-            this.log(`Bot dealer ${dealer.displayName} auto-set ante to 3¢`);
+        // Check if there's a going set bonus (players went set last round)
+        if (this.state.nextRoundPotBonus > 0) {
+          // Going set bonus active - ante is automatically 3¢, no choice
+          for (const p of this.state.players.values()) {
+            p.bet = 3; // Fixed ante when players went set
           }
-          this.triggerNewRoundCheck(); // Re-check after setting ante
+          this.state.dealerHasSetAnte = true;
+
+          // Show ante message for bot dealer too
+          this.state.dealerSetAnteMessage = true;
+          this.state.dealerSetAnteAmount = '3¢';
+
+          this.clock.setTimeout(() => {
+            this.state.dealerSetAnteMessage = false;
+          }, 3000);
+
+          this.log(
+            `Bot dealer ${dealer.displayName} - ante fixed at 3¢ (going set bonus active)`
+          );
+        } else {
+          // Normal round - bot dealer auto-sets ante to 3¢ (default)
+          for (const p of this.state.players.values()) {
+            p.bet = 3;
+          }
+          this.state.dealerHasSetAnte = true;
+
+          // Show ante message for bot dealer too
+          this.state.dealerSetAnteMessage = true;
+          this.state.dealerSetAnteAmount = '3¢';
+
+          this.clock.setTimeout(() => {
+            this.state.dealerSetAnteMessage = false;
+          }, 3000);
+
+          this.log(`Bot dealer ${dealer.displayName} auto-set ante to 3¢`);
         }
+
+        // NEW: Immediately make bot dealer ready and collect ante
+        this.log(`Bot dealer ${dealer.displayName} auto-readying with ante`);
+        this.addPlayerAnteToPot(dealer.sessionId);
+        dealer.ready = true;
+        dealer.autoReady = true;
+        this.triggerNewRoundCheck(); // Re-check after dealer becomes ready
       }, 1000);
       return;
     }
@@ -1253,19 +1359,38 @@ export class GameRoom extends Room<GameState> {
     // NOW HANDLE BOT AUTO-READY (after ante is set)
     for (const player of playerArr) {
       if (player.isBot && !player.ready && !player.disconnected) {
-        // Only ready bots if dealer has set ante (or if this bot IS the dealer and ante is set)
-        if (
-          this.state.dealerHasSetAnte ||
-          player.sessionId === this.state.dealerId
-        ) {
+        this.log(`=== NON-DEALER BOT CHECK ===`);
+        this.log(`Bot: ${player.displayName}`);
+        this.log(`Bot ID: ${player.sessionId}`);
+        this.log(`Dealer has set ante: ${this.state.dealerHasSetAnte}`);
+        this.log(
+          `Is this bot the dealer: ${player.sessionId === this.state.dealerId}`
+        );
+
+        // Only ready bots if dealer has set ante
+        if (this.state.dealerHasSetAnte) {
+          this.log(`CONDITIONS MET - Setting bot ready timeout`);
           this.clock.setTimeout(() => {
+            this.log(
+              `BOT AUTO-READY TIMEOUT TRIGGERED for ${player.displayName}`
+            );
             if (player && !player.ready && this.state.roundState === 'idle') {
+              this.log(`${player.displayName} (bot) auto-readying with ante`);
+              // NEW: Use the same ante collection logic as human players
+              this.addPlayerAnteToPot(player.sessionId);
+
               player.ready = true;
               player.autoReady = true;
-              this.log(`${player.displayName} (bot) auto-readied`);
+              this.log(`${player.displayName} (bot) auto-readied with ante`);
               this.triggerNewRoundCheck(); // Recursive check
+            } else {
+              this.log(
+                `${player.displayName} timeout conditions failed - ready: ${player.ready}, roundState: ${this.state.roundState}`
+              );
             }
           }, 500 + Math.random() * 1500);
+        } else {
+          this.log(`CONDITIONS NOT MET - dealer hasn't set ante yet`);
         }
       }
     }
@@ -1400,41 +1525,14 @@ export class GameRoom extends Room<GameState> {
       `Deck shuffled. Cards remaining: ${this.state.deck.remainingCards}`
     );
 
-    // REPLACE the ante collection with this SWICK-correct logic:
+    // ANTES ALREADY COLLECTED IN REAL-TIME - No need to collect here
+    this.log(`Antes already collected. Current pot: ${this.state.potValue}¢`);
+
+    // Deal cards to ready players
     for (const playerId of this.makeRoundIterator()) {
       const player = this.state.players.get(playerId);
 
-      // SWICK Rule: Only dealer pays ante if players went set last round
-      const shouldPayAnte =
-        this.state.nextRoundPotBonus > 0
-          ? playerId === this.state.dealerId // Only dealer pays if someone went set
-          : true; // Everyone pays if no one went set
-
-      if (shouldPayAnte) {
-        let anteAmount;
-        if (playerId === this.state.dealerId) {
-          if (this.state.nextRoundPotBonus > 0) {
-            // When players went set, dealer only pays extra ante (3¢)
-            anteAmount = gameConfig.dealerExtraAnte;
-          } else {
-            // Normal round, dealer pays base + extra (6¢ total)
-            anteAmount = player.bet + gameConfig.dealerExtraAnte;
-          }
-        } else {
-          // Non-dealers always pay base ante when they pay
-          anteAmount = player.bet;
-        }
-
-        player.money -= anteAmount;
-        this.state.potValue += anteAmount;
-        this.log(`${player.displayName} antes ${anteAmount}¢`);
-      } else {
-        this.log(
-          `${player.displayName} gets free ride (players went set last round)`
-        );
-      }
-
-      //Deal player 3 cards from the deck (SWICK rule)
+      // Deal player 3 cards from the deck (SWICK rule)
       player.hand.clear();
       player.hand.addCardFromDeck(this.state.deck, true); // Card 1
       player.hand.addCardFromDeck(this.state.deck, true); // Card 2
@@ -1930,6 +2028,12 @@ export class GameRoom extends Room<GameState> {
     this.state.dealerKeptTrump = false;
     this.state.dealerKeptTrumpMessage = false;
     this.state.dealerTrumpValue = '';
+
+    // Clear ante data (ENHANCED for real-time pot tracking)
+    this.state.dealerHasSetAnte = false;
+    this.state.currentAnteAmount = 0; // NEW: Reset ante tracking for next round
+
+    this.log('Pot and ante tracking reset for next round');
 
     // Clear ante data
     this.state.dealerHasSetAnte = false;

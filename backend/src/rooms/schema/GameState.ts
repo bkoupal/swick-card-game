@@ -251,6 +251,7 @@ export class GameState extends Schema {
   // SWICK-specific fields
   @type('string') trumpSuit: string = '';
   @type('number') potValue: number = 0;
+  @type('number') currentAnteAmount: number = 0;
   @type(Card) trumpCard?: Card; // The trump card that determines the trump suit
   @type('string') dealerId: string = ''; // Which player is the dealer for this hand
   @type([PlayedCard]) currentTrick = new ArraySchema<PlayedCard>(); // Cards played in current trick

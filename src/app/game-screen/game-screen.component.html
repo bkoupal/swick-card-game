@@ -56,6 +56,12 @@
     >
       <!-- Main pot value -->
       <div class="text-lg">💰 Pot: {{ game.room!.state.potValue }}¢</div>
+      <div
+        *ngIf="game.room!.state.currentAnteAmount > 0"
+        class="text-green-200 text-sm ml-1"
+      >
+        ({{ game.room!.state.currentAnteAmount }}¢ ante)
+      </div>
 
       <!-- Show trick values -->
       <div class="text-sm text-green-200 mt-1">
