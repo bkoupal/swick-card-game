@@ -131,11 +131,11 @@
           }
 
           @if $i == 2 or $i == 3 {
-            top: 28%;
+            top: 30%;
           } @else if $i == 4 or $i == 5 {
-            top: 48%;
+            top: 55%;
           } @else if $i == 6 or $i == 7 {
-            top: 68%;
+            top: 80%;
           }
 
           transform: translate(-50%, -50%);

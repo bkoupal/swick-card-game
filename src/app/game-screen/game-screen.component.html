@@ -217,7 +217,8 @@
         *ngIf="
           game.room!.state.trumpCard &&
           (game.trumpSelectionPhase ||
-            (!game.trumpSelectionPhase && game.room!.state.trumpSuit))
+            (!game.trumpSelectionPhase && game.room!.state.trumpSuit)) &&
+          game.room!.state.roundState !== 'end'
         "
         class="trump-card-container"
       >
@@ -421,7 +422,7 @@
     <!-- Going Set Results Announcement (NEW) -->
     <div
       *ngIf="shouldShowGoingSetResults()"
-      class="absolute left-1/2 transform -translate-x-1/2 z-30"
+      class="fixed left-1/2 transform -translate-x-1/2 z-[9999]"
       style="top: 35%"
     >
       <div class="going-set-announcement text-center">
