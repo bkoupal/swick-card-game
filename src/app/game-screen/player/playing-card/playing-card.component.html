@@ -4,6 +4,7 @@
   [class.clickable-card]="isClickable"
   [class.selected]="card.selected"
   [class.trump-card-kept]="dealerKeptThisCard"
+  [class.dealer-view-only]="dealerKeptThisCard && isDealerView"
   [class.trump-suit-card]="isTrumpSuit && !dealerKeptThisCard"
   (click)="onCardClick()"
 >

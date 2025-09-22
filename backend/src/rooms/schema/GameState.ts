@@ -179,6 +179,7 @@ export class Player extends Schema {
   @type('boolean') admin: boolean;
   @type('string') roundOutcome: roundOutcome;
   @type(Hand) hand = new Hand();
+  @type('boolean') hasTrumpDecision: boolean = false;
 
   // SWICK-specific player states
   @type('boolean') knockedIn = false; // Whether player "knocked in" to play this hand

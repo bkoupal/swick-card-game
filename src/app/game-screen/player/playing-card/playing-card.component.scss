@@ -231,7 +231,7 @@
 }
 
 /* Enhance existing card styling for trump cards */
-.card-container.trump-card-kept {
+.card-container.trump-card-kept.dealer-view-only {
   position: relative;
 
   &::before {

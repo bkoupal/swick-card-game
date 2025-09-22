@@ -451,6 +451,7 @@ export class GameRoom extends Room<GameState> {
     this.onMessage('keepTrump', (client, keep: boolean) => {
       // Update room activity on any message
       this.updateRoomActivity();
+
       // Only dealer can make trump decision during trump-selection phase
       if (
         this.state.roundState != 'trump-selection' ||
@@ -459,21 +460,22 @@ export class GameRoom extends Room<GameState> {
       )
         return;
 
-      // Prevent duplicate trump decisions
       const dealer = this.state.players.get(client.sessionId);
       if (!dealer) return;
 
-      // Check if dealer already made trump decision
-      if (this.state.trumpSuit) {
+      // IMMEDIATE DUPLICATE PREVENTION (same pattern as knockIn)
+      if (dealer.hasTrumpDecision) {
         this.log(`Dealer already made trump decision - ignoring duplicate`);
         return;
       }
+
+      // SET FLAG IMMEDIATELY (same pattern as knockIn)
+      dealer.hasTrumpDecision = true;
 
       this.log(`Dealer ${keep ? 'keeps' : 'discards'} trump card`, client);
 
       if (keep) {
         // Dealer keeps trump card - add it to dealer's hand
-        const dealer = this.state.players.get(client.sessionId);
         if (this.state.trumpCard) {
           dealer.hand.cards.push(this.state.trumpCard);
 
@@ -485,7 +487,7 @@ export class GameRoom extends Room<GameState> {
             `Dealer kept trump: ${this.state.dealerTrumpValue} of ${this.state.trumpSuit}`
           );
 
-          // ADD THIS: Set state for message display
+          // Set state for message display
           this.state.dealerKeptTrumpMessage = true;
         }
       } else {
@@ -1503,7 +1505,9 @@ export class GameRoom extends Room<GameState> {
     this.state.dealerKeptTrump = false;
     this.state.dealerKeptTrumpMessage = false;
     this.state.dealerTrumpValue = '';
-    // Don't reset nextRoundPotBonus here - it's used for current round pot
+
+    // RESET TRICK LEADER FOR NEW HAND
+    this.state.trickLeaderId = '';
 
     // Reset player states for new hand
     for (const player of this.state.players.values()) {
@@ -1580,6 +1584,11 @@ export class GameRoom extends Room<GameState> {
   private startTrumpSelectionPhase() {
     this.log(`Starting trump selection phase`);
     this.state.roundState = 'trump-selection';
+
+    // Reset trump decision flags for all players (especially dealer)
+    for (const player of this.state.players.values()) {
+      player.hasTrumpDecision = false;
+    }
 
     // Clear dealer hand from previous games
     this.state.dealerHand.clear();
@@ -1932,19 +1941,31 @@ export class GameRoom extends Room<GameState> {
     this.updateRoomMetadata();
   }
 
-  /** Iterator over players that knocked in */
+  /** Iterator over players that knocked in - starts from the current trick leader */
   private *makeKnockedInIterator() {
-    let players = [...this.state.players.values()].filter(
+    const players = [...this.state.players.values()].filter(
       (p) => p.ready && p.knockedIn
     );
 
-    //Rotate players by offset
-    players = players.concat(
-      players.splice(0, this.roundIteratorOffset % players.length)
+    // Find the current trick leader's index
+    const leaderIndex = players.findIndex(
+      (p) => p.sessionId === this.state.trickLeaderId
     );
 
+    if (leaderIndex === -1) {
+      // Fallback: start from first player
+      for (const player of players) {
+        if (player.ready && player.knockedIn) {
+          yield player.sessionId;
+        }
+      }
+      return;
+    }
+
+    // Start from the trick leader and go in order
     for (let i = 0; i < players.length; i++) {
-      const player = players[i];
+      const playerIndex = (leaderIndex + i) % players.length;
+      const player = players[playerIndex];
 
       //If grabbed player is not ready or didn't knock in, skip them
       if (!player.ready || !player.knockedIn) continue;

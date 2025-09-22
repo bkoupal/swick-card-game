@@ -213,15 +213,15 @@
 ::ng-deep .table-font-player-name {
   // Larger base font size optimized for mobile readability
   font-size: calc(
-    var(--table-unit) * 0.055
+    var(--table-unit) * 0.035
   ); // ~15.4px on mobile (up from 9.8px)
-  line-height: calc(var(--table-unit) * 0.075); // ~21px line height
+  line-height: calc(var(--table-unit) * 0.048); // ~21px line height
   font-weight: 600; // Semi-bold for better visibility
 
   // Tablet optimization
   @media (min-width: 769px) and (max-width: 1024px) {
-    font-size: calc(var(--table-unit) * 0.048); // Slightly smaller on tablets
-    line-height: calc(var(--table-unit) * 0.065);
+    font-size: calc(var(--table-unit) * 0.042); // Slightly smaller on tablets
+    line-height: calc(var(--table-unit) * 0.058);
   }
 
   // Desktop scaling

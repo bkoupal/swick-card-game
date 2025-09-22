@@ -189,7 +189,11 @@
     <div class="player-holder row-start-1 col-start-1">
       <app-player
         *ngFor="let player of getAllPlayers(smallScreen$ | async); index as i"
-        [style.z-index]="10 - Math.round(getPlayerPosition(i) * 10)"
+        [style.z-index]="
+          game.room!.sessionId === player?.sessionId
+            ? 50
+            : 10 - Math.round(getPlayerPosition(i) * 10)
+        "
         [class.client-player]="game.room!.sessionId === player?.sessionId"
         [player]="player"
         [endTimestamp]="game.roundEndTimestamp"
@@ -235,7 +239,7 @@
     </div>
 
     <!-- Stacked Messages System -->
-    <div class="stacked-messages-container">
+    <!--div class="stacked-messages-container">
       <div
         *ngFor="
           let message of getActiveMessages();
@@ -247,7 +251,7 @@
       >
         {{ message.text }}
       </div>
-    </div>
+    </div-->
 
     <!-- Dealer Set Ante Message -->
     <div
@@ -275,7 +279,11 @@
       Dealer Kept Trump
     </div>
     <div
-      *ngIf="game.trumpSelectionPhase && game.isDealer"
+      *ngIf="
+        game.trumpSelectionPhase &&
+        game.isDealer &&
+        !getDealerPlayer()?.hasTrumpDecision
+      "
       class="row-start-1 col-start-1 z-10 table-font-xl pill-popup"
     >
       Do you want to Keep Trump Card?
@@ -474,7 +482,11 @@
     [autoReady]="game.player?.autoReady"
     (autoReadyChange)="game.setAutoReadyState($event)"
     [cardPlayPhase]="game.room!.state.roundState === 'turns'"
-    [trumpSelectionMenuVisible]="game.trumpSelectionPhase && game.isDealer"
+    [trumpSelectionMenuVisible]="
+      game.trumpSelectionPhase &&
+      game.isDealer &&
+      !getDealerPlayer()?.hasTrumpDecision
+    "
     [trumpCardDisplay]="getTrumpCardDisplay()"
     (keepTrump)="game.keepTrump($event)"
     [knockInMenuVisible]="

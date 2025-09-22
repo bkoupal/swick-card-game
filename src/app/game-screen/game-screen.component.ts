@@ -433,4 +433,9 @@ export class GameScreenComponent implements OnInit {
       this.checkForDiscardDrawMessages();
     }, 1000); // Increased to 1 second to reduce spam
   }
+
+  getDealerPlayer() {
+    if (!this.game.room?.state) return null;
+    return this.game.room.state.players.get(this.game.room.state.dealerId);
+  }
 }
