@@ -146,33 +146,12 @@
 </div>
 
 <div class="card-holder absolute z-10">
-  <app-hand-score
-    class="absolute left-1/2 -translate-x-1/2 bottom-full"
-    [hand]="hand"
-    *ngIf="!scoreBottom"
-  ></app-hand-score>
-
   <div class="grid place-items-center">
-    <!-- Round outcome popup -->
-    <!--div
-      *ngIf="player?.roundOutcome || dealerHand?.isBusted"
-      class="z-10 table-font pill-popup col-start-1 row-start-1 whitespace-nowrap text-center"
-      data-cy="roundOutcome"
-    >
-      {{
-        player
-          ? clientIsPlayer
-            ? roundOutcomeToDisplayMessageCurrentPlayer[player.roundOutcome]
-            : roundOutcomeToDisplayMessage[player.roundOutcome]
-          : "Busted"
-      }}
-    </div -->
-
     <!-- Cards display - HIDE COMPLETELY if player passed -->
     <div
       *ngIf="!hasPlayerPassed()"
       class="flex col-start-1 row-start-1 transition-opacity duration-1000"
-      [class.opacity-80]="player?.roundOutcome || dealerHand?.isBusted"
+      [class.opacity-80]="player?.roundOutcome"
     >
       <div class="hand">
         <app-card
@@ -190,11 +169,4 @@
       <div style="width: calc(var(--playing-card-width) * 0.5)"></div>
     </div>
   </div>
-
-  <!-- Bottom hand score -->
-  <app-hand-score
-    class="absolute left-1/2 -translate-x-1/2"
-    [hand]="hand"
-    *ngIf="scoreBottom"
-  ></app-hand-score>
 </div>

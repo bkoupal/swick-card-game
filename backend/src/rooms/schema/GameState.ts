@@ -161,33 +161,6 @@ export class Hand extends Schema {
     this.cards.clear();
   }
 
-  // SWICK-specific methods will be added in later steps
-  // For now, keep basic structure compatible
-  public get score() {
-    // Placeholder - will be replaced with SWICK hand evaluation
-    return 0;
-  }
-
-  public get isBlackjack() {
-    // Not applicable to SWICK, but keeping for compatibility during transition
-    return false;
-  }
-
-  public get isBusted() {
-    // Not applicable to SWICK, but keeping for compatibility during transition
-    return false;
-  }
-
-  public calculateScore() {
-    // Placeholder - will implement SWICK hand evaluation later
-  }
-
-  // Keep old addCard method for backwards compatibility during transition
-  public addCard(visible?: boolean) {
-    // This will be deprecated once we fully transition to deck-based drawing
-    this.cards.push(new Card(undefined, undefined, visible));
-  }
-
   public addSpecificCard(value: Value, suit: Suit, visible = true) {
     const card = new Card(suit, value, visible);
     this.cards.push(card);
@@ -210,12 +183,14 @@ export class Player extends Schema {
   // SWICK-specific player states
   @type('boolean') knockedIn = false; // Whether player "knocked in" to play this hand
   @type('boolean') hasKnockDecision = false; // Whether player has made knock decision yet
+
   // Discard/draw phase states
   @type('number') cardsToDiscard = 0; // Number of cards player wants to discard (0-3)
   @type([Card]) discardedCards = new ArraySchema<Card>(); // Cards the player discarded
   @type('boolean') hasDiscardDecision = false; // Whether player has made discard decision yet
   @type([Card]) selectedCards = new ArraySchema<Card>(); // Cards the player has selected for discard
   @type('boolean') dealerCompletedNormalDiscard = false; // Whether dealer finished their normal discard/draw
+
   // Going Set tracking
   @type('number') tricksWon: number = 0; // Number of tricks won this round
   @type('boolean') wentSet: boolean = false; // Whether player went set this round
@@ -226,6 +201,7 @@ export class Player extends Schema {
   @type('boolean') isBot: boolean = false;
   @type('string') botDifficulty: string = '';
 
+  // Messages shown to player
   @type(['string']) shownMessages = new ArraySchema<string>();
 }
 
@@ -245,44 +221,45 @@ export class GameState extends Schema {
   @type('string') currentTurnPlayerId: string;
   @type('uint64') currentTurnTimeoutTimestamp: number = 0;
   @type('uint64') nextRoundStartTimestamp: number = 0;
-
   @type(Hand) dealerHand = new Hand();
   @type({ map: Player }) players = new MapSchema<Player>();
   @type(Deck) deck = new Deck();
+  @type(RoomMetadata) roomMetadata = new RoomMetadata();
 
-  // SWICK-specific fields
-  @type('string') trumpSuit: string = '';
-  @type('number') potValue: number = 0;
-  @type('number') currentAnteAmount: number = 0;
-  @type(Card) trumpCard?: Card; // The trump card that determines the trump suit
-  @type('string') dealerId: string = ''; // Which player is the dealer for this hand
+  // Trick tracking
+  @type('number') currentTrickNumber: number = 1; // Which trick we're on (1, 2, or 3)
+  @type('string') trickLeaderId: string = ''; // Who leads the current trick
   @type([PlayedCard]) currentTrick = new ArraySchema<PlayedCard>(); // Cards played in current trick
   @type([CompletedTrick]) completedTricks = new ArraySchema<CompletedTrick>(); // History of completed tricks
-  @type('string') trickLeaderId: string = ''; // Who leads the current trick
-  @type('number') currentTrickNumber: number = 1; // Which trick we're on (1, 2, or 3)
+
+  // Trump tracking
+  @type('string') trumpSuit: string = '';
+  @type(Card) trumpCard?: Card; // The trump card that determines the trump suit
+
+  // Pot and ante tracking
+  @type('number') potValue: number = 0;
+  @type('number') currentAnteAmount: number = 0;
+  @type('number') nextRoundPotBonus: number = 0; // Extra pot from players who went set
+  @type('boolean') dealerHasSetAnte: boolean = false;
+  @type('string') dealerSetAnteAmount: string = '';
+
+  // Dealer tracking
+  @type('string') dealerId: string = ''; // Which player is the dealer for this hand
+  @type('boolean') dealerKeptTrump: boolean = false; // Whether dealer kept the trump card
+  @type('string') dealerTrumpValue: string = ''; // Value of trump card dealer kept (for set requirements)
 
   // Special hand display fields
   @type('string') specialHandWinner: string = ''; // Player ID who won with special hand
   @type('string') specialHandType: string = ''; // Type: 'three-aces', 'three-sevens', 'akq-trump'
   @type('string') specialHandDescription: string = ''; // Human-readable description
   @type('number') specialHandPotValue: number = 0; // Pot value won
-
-  // Going Set tracking
-  @type('boolean') dealerKeptTrump: boolean = false; // Whether dealer kept the trump card
-  @type('string') dealerTrumpValue: string = ''; // Value of trump card dealer kept (for set requirements)
-  @type('number') nextRoundPotBonus: number = 0; // Extra pot from players who went set
-  @type('boolean') dealerHasSetAnte: boolean = false;
-
   @type('string') specialRoundOutcome: string = '';
   @type('string') specialRoundMessage: string = '';
 
-  @type(RoomMetadata) roomMetadata = new RoomMetadata();
-
+  // Messages shown to all players
   @type('boolean') dealerKeptTrumpMessage: boolean = false;
   @type('number') dealerKeptTrumpMessageTimestamp: number = 0;
-
   @type('boolean') dealerSetAnteMessage: boolean = false;
-  @type('string') dealerSetAnteAmount: string = '';
 }
 
 export type roundOutcome = 'bust' | 'win' | 'lose' | 'draw' | '';

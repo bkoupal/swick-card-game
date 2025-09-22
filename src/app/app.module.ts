@@ -1,3 +1,5 @@
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -25,7 +27,6 @@ import { ClipboardModule } from '@angular/cdk/clipboard';
 import { ReactiveFormsModule } from '@angular/forms';
 import { NotifierModule } from 'angular-notifier';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { HandScoreComponent } from './game-screen/player/hand-score/hand-score.component';
 import { LayoutModule } from '@angular/cdk/layout';
 import { LobbyComponent } from './lobby/lobby.component';
 import { GameService } from './game.service';
@@ -44,10 +45,11 @@ import { MatChipsModule } from '@angular/material/chips';
     MoneyCounterComponent,
     KickDialogComponent,
     InputConstrainDirective,
-    HandScoreComponent,
     LobbyComponent,
   ],
   imports: [
+    CommonModule,
+    RouterModule.forRoot([]), // Add your routes here
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,

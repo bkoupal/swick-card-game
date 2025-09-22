@@ -226,40 +226,6 @@ describe('swick-card-game tests', () => {
     cy.get('app-card').should('have.length', 4);
   });
 
-  it('player can hit during round', () => {
-    cy.startRoundWithoutBlackjack();
-
-    cy.contains('Hit').click();
-
-    //Player should have 3 cards and dealer has 2 cards, so 5 in total
-    cy.get('app-card').should('have.length', 5);
-  });
-
-  it(
-    'player can stay during round and it cleanups table after round',
-    {
-      defaultCommandTimeout: 10000, //End phase can last longer than 4s
-    },
-    () => {
-      cy.startRoundWithoutBlackjack();
-
-      cy.contains('Stay').click();
-
-      cy.getBySel('roundOutcome');
-
-      // Cards should be cleaned up after round
-      cy.get('app-card').should('have.length', 0);
-
-      // Turn progress bar should be at 0%
-      cy.getBySel('turn-progress-bar')
-        .invoke('attr', 'aria-valuenow')
-        .should('eq', '0');
-
-      // Ready state should be unset
-      cy.contains('Ready');
-    }
-  );
-
   it('shows when other players disconnected', () => {
     cy.createRoom().then((r) => {
       cy.visit(`/room/${r.id}`);

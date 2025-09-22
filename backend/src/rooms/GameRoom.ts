@@ -8,13 +8,9 @@ import {
 } from './schema/GameState';
 import gameConfig from '../game.config';
 import log from 'npmlog';
-import {
-  generateUserName,
-  generateRoomId,
-  computeRoundOutcome,
-} from './utility';
+import { generateRoomId } from './utility';
 import { ArraySchema } from '@colyseus/schema';
-import { Suit, Value } from './schema/cardValues';
+import { Suit } from './schema/cardValues';
 
 /**
  * Represents a special hand type with its priority
@@ -1974,11 +1970,6 @@ export class GameRoom extends Room<GameState> {
     }
 
     this.log('Turn', this.state.currentTurnPlayerId);
-
-    //Skip round if player has blackjack
-    if (this.state.players.get(this.state.currentTurnPlayerId).hand.isBlackjack)
-      this.turn();
-    else this.setInactivitySkipTimeout();
   }
 
   private setInactivitySkipTimeout() {
