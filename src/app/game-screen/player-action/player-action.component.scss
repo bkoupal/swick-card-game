@@ -52,3 +52,29 @@
   --mdc-filled-button-container-color: #15803d;
   background-color: #15803d !important;
 }
+
+.special-hand-menu {
+  .special-hand-button {
+    width: 100%;
+    font-size: 1.2em !important;
+    font-weight: bold !important;
+    padding: 12px 24px !important;
+    animation: pulse 1.5s ease-in-out infinite;
+    background: linear-gradient(45deg, #ff6b6b, #ffd93d) !important;
+    border: 3px solid gold !important;
+    color: white !important;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 8px 12px rgba(255, 215, 0, 0.6);
+  }
+}

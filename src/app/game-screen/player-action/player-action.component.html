@@ -312,6 +312,17 @@
     </div>
   </div>
 
+  <!-- Play Special Hand Button (NEW) - Add this entire section -->
+  <div class="pill-menu special-hand-menu" *ngIf="showSpecialHandButton">
+    <button
+      (click)="playSpecialHand.emit()"
+      class="special-hand-button"
+      data-cy="play-special-hand"
+    >
+      🏆 Play Special Hand 🏆
+    </button>
+  </div>
+
   <div
     class="pill-menu"
     *ngIf="
@@ -319,7 +330,8 @@
       !trumpSelectionMenuVisible &&
       !knockInMenuVisible &&
       cardPlayPhase &&
-      isPlayersTurn
+      isPlayersTurn &&
+      !showSpecialHandButton
     "
   >
     <span class="whitespace-normal text-center">

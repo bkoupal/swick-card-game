@@ -48,6 +48,10 @@ export class PlayerActionsComponent {
   @Input() hasGoingSetBonus = false; // Whether there's a going set bonus active
   @Input() goingSetBonusAmount = 0; // Amount of going set bonus
 
+  // Special hand inputs/outputs (NEW)
+  @Input() showSpecialHandButton = false;
+  @Output() playSpecialHand = new EventEmitter<void>();
+
   gameConfig = gameConfig;
 
   get isWaitingForAnteSet(): boolean {

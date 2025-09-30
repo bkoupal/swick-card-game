@@ -17,6 +17,37 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no"
     />
+
+    <!-- ADD THESE TWO LINES to suppress extension warnings -->
+    <meta http-equiv="Permissions-Policy" content="clipboard-write=()" />
+    <style>
+      app-root:empty {
+        display: block;
+        width: 100%;
+        height: 100vh;
+        background: #1a1a1a;
+      }
+      app-root:empty::before {
+        content: "";
+        display: block;
+        width: 40px;
+        height: 40px;
+        margin: 45vh auto;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link

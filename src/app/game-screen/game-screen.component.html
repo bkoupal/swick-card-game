@@ -512,6 +512,8 @@
     [goingSetBonusAmount]="getNextRoundBonus()"
     [cardPlayPhase]="game.room!.state.roundState === 'turns'"
     [isPlayersTurn]="game.playersTurn"
+    [showSpecialHandButton]="shouldShowPlaySpecialHandButton()"
+    (playSpecialHand)="playSpecialHand()"
   ></app-player-actions>
 
   <span class="text-neutral-400 self-end" data-cy="roomId-value">

@@ -944,6 +944,73 @@ export class GameRoom extends Room<GameState> {
       }
       // If goSet is false, this message shouldn't be sent, but just ignore it
     });
+    this.onMessage('playSpecialHand', async (client) => {
+      // Update room activity on any message
+      this.updateRoomActivity();
+
+      if (
+        client.sessionId != this.state.currentTurnPlayerId ||
+        this.state.roundState != 'turns' ||
+        this.state.currentTrickNumber != 1
+      ) {
+        this.log(`Invalid special hand play attempt from ${client.sessionId}`);
+        return;
+      }
+
+      const player = this.state.players.get(client.sessionId);
+      if (!player || !player.hasSpecialHand) {
+        this.log(
+          `Player ${client.sessionId} tried to play special hand but doesn't have one`
+        );
+        return;
+      }
+
+      this.log(
+        `${player.displayName} is revealing special hand: ${player.specialHandType}`
+      );
+
+      // ADD CARDS DIRECTLY TO TRICK (without triggering playCard logic)
+      const cards = [...player.hand.cards];
+      for (let i = 0; i < Math.min(3, cards.length); i++) {
+        const card = cards[i];
+        const playedCard = new PlayedCard(
+          player.sessionId,
+          card,
+          this.state.currentTrick.length
+        );
+        this.state.currentTrick.push(playedCard);
+        this.log(
+          `  Card ${i + 1}: ${card.value?.value} of ${card.value?.suit}`
+        );
+      }
+
+      // Clear player's hand
+      player.hand.cards.clear();
+
+      // Wait 2 seconds for players to see the cards on the table
+      await this.delay(2000);
+
+      // NOW directly handle the special hand win (don't check again, we already know they have it)
+      const specialHands: SpecialHand[] = [
+        {
+          type: player.specialHandType as
+            | 'three-aces'
+            | 'three-sevens'
+            | 'akq-trump',
+          priority:
+            player.specialHandType === 'three-aces'
+              ? 1
+              : player.specialHandType === 'three-sevens'
+              ? 2
+              : 3,
+          playerId: player.sessionId,
+          description: `${player.displayName} has ${player.specialHandType}`,
+        },
+      ];
+
+      this.log(`Handling special hand win for ${player.displayName}`);
+      await this.handleSpecialHandWin(specialHands);
+    });
   }
 
   onAuth(client: Client) {
@@ -1529,6 +1596,10 @@ export class GameRoom extends Room<GameState> {
         player.wentSet = false;
         player.setAmount = 0;
         player.setType = '';
+
+        // RESET SPECIAL HAND TRACKING (NEW)
+        player.hasSpecialHand = false;
+        player.specialHandType = '';
       }
     }
 
@@ -1893,19 +1964,29 @@ export class GameRoom extends Room<GameState> {
   }
 
   private async startTrickTakingPhase() {
-    this.log(`Checking for special hands before starting trick-taking...`);
+    // Mark players with special hands (but don't reveal yet)
+    this.log(`Checking for special hands and marking players...`);
 
-    // Check for special hands after all discard/draw is complete
-    const specialHands = this.checkForSpecialHands();
-
-    if (specialHands.length > 0) {
-      // Special hand detected - handle the win
-      await this.handleSpecialHandWin(specialHands);
-      return; // Don't proceed to trick-taking
+    for (const player of this.state.players.values()) {
+      if (player.ready && player.knockedIn) {
+        const specialHand = this.checkPlayerForSpecialHand(player);
+        if (specialHand) {
+          player.hasSpecialHand = true;
+          player.specialHandType = specialHand.type;
+          this.log(
+            `${player.displayName} has ${specialHand.type} - marked for reveal`
+          );
+        } else {
+          player.hasSpecialHand = false;
+          player.specialHandType = '';
+        }
+      }
     }
 
-    // No special hands - proceed with normal trick-taking
-    this.log(`No special hands detected - starting normal trick-taking phase`);
+    // Don't check for special hands here anymore - check on each player's turn
+    this.log(
+      `Starting trick-taking phase - special hands will be checked on each turn`
+    );
     this.state.roundState = 'turns';
 
     // Update lobby status for turns phase:
@@ -2029,6 +2110,12 @@ export class GameRoom extends Room<GameState> {
     // CALCULATE GOING SET AND AWARD WINNINGS
     this.calculateGoingSet();
     this.awardTrickWinnings();
+
+    // NOW clear special hand winner (after going set calculation needs it)
+    this.state.specialHandWinner = '';
+    this.state.specialHandType = '';
+    this.state.specialHandDescription = '';
+    this.state.specialHandPotValue = 0;
 
     // TODO: SWICK scoring logic will be implemented in Step 5
     // For now, just end the hand and reset for next round
@@ -2197,6 +2284,20 @@ export class GameRoom extends Room<GameState> {
    * Plays a card and handles trick logic
    */
   private playCard(player: Player, cardToPlay: Card, cardIndex: number) {
+    // Prevent playing individual cards if player has a special hand in Trick 1
+    if (this.state.currentTrickNumber === 1 && player.hasSpecialHand) {
+      this.log(
+        `${player.displayName} tried to play individual card but has a special hand - must use the button`
+      );
+      return;
+    }
+
+    // DON'T PROCESS NORMAL CARD PLAYS DURING SPECIAL HAND REVEAL
+    if (this.state.specialHandBeingRevealed) {
+      this.log(`Ignoring card play during special hand reveal`);
+      return;
+    }
+
     // Add card to current trick
     const playedCard = new PlayedCard(
       player.sessionId,
@@ -2259,6 +2360,11 @@ export class GameRoom extends Room<GameState> {
    * Enhanced trick progression with better logging - MODIFY EXISTING METHOD
    */
   private async completeTrick() {
+    // Don't complete trick if special hand is being revealed
+    if (this.state.specialHandBeingRevealed) {
+      this.log(`Skipping trick completion - special hand being revealed`);
+      return;
+    }
     const trickWinner = this.determineTrickWinner(this.state.currentTrick);
     if (!trickWinner) {
       this.log('Error: No trick winner determined');
@@ -2524,12 +2630,6 @@ export class GameRoom extends Room<GameState> {
     // Wait for players to see the special hand result
     await this.delay(10000);
 
-    // CLEAR THE DISPLAY FIELDS
-    this.state.specialHandWinner = '';
-    this.state.specialHandType = '';
-    this.state.specialHandDescription = '';
-    this.state.specialHandPotValue = 0;
-
     // End the round
     this.endRound();
   }
@@ -2579,12 +2679,32 @@ export class GameRoom extends Room<GameState> {
   private calculateGoingSet() {
     this.log('=== CALCULATING GOING SET ===');
 
+    // Log the special hand winner for debugging
+    if (this.state.specialHandWinner) {
+      this.log(`Special hand winner: ${this.state.specialHandWinner}`);
+    }
+
     const knockedInPlayers = [...this.state.players.values()].filter(
       (p) => p.ready && p.knockedIn
     );
 
     for (const player of knockedInPlayers) {
       const isDealer = player.sessionId === this.state.dealerId;
+
+      // Skip the special hand winner - they already won the entire pot
+      if (
+        this.state.specialHandWinner &&
+        player.sessionId === this.state.specialHandWinner
+      ) {
+        this.log(
+          `${player.displayName} won with special hand - skipping going set check AND clearing flags`
+        );
+        // Ensure their wentSet flag is false
+        player.wentSet = false;
+        player.setAmount = 0;
+        player.setType = '';
+        continue;
+      }
 
       this.log(
         `Checking ${player.displayName} (${isDealer ? 'Dealer' : 'Player'}): ${
@@ -3075,7 +3195,6 @@ export class GameRoom extends Room<GameState> {
     // CRITICAL FIX 2: Check if bot has any cards left
     if (!bot.hand.cards || bot.hand.cards.length === 0) {
       this.log(`ERROR: ${bot.displayName} has no cards left to play!`);
-      // This should trigger end of round logic
       this.checkForRoundEnd();
       return;
     }
@@ -3086,6 +3205,64 @@ export class GameRoom extends Room<GameState> {
         `${bot.displayName} tried to play but it's ${this.state.currentTurnPlayerId}'s turn`
       );
       return;
+    }
+
+    // NEW: Check if bot has a special hand on first trick
+    if (this.state.currentTrickNumber === 1 && bot.hasSpecialHand) {
+      this.log(`${bot.displayName} has special hand - auto-playing it`);
+
+      const thinkingTime = this.getBotThinkingTime(bot.botDifficulty);
+
+      this.clock.setTimeout(async () => {
+        // Trigger the special hand play logic
+        this.log(
+          `${bot.displayName} is revealing special hand: ${bot.specialHandType}`
+        );
+
+        // ADD CARDS DIRECTLY TO TRICK
+        const cards = [...bot.hand.cards];
+        for (let i = 0; i < Math.min(3, cards.length); i++) {
+          const card = cards[i];
+          const playedCard = new PlayedCard(
+            bot.sessionId,
+            card,
+            this.state.currentTrick.length
+          );
+          this.state.currentTrick.push(playedCard);
+          this.log(
+            `  Card ${i + 1}: ${card.value?.value} of ${card.value?.suit}`
+          );
+        }
+
+        // Clear bot's hand
+        bot.hand.cards.clear();
+
+        // Wait 2 seconds for players to see the cards
+        await this.delay(2000);
+
+        // Create special hand object and handle win
+        const specialHands: SpecialHand[] = [
+          {
+            type: bot.specialHandType as
+              | 'three-aces'
+              | 'three-sevens'
+              | 'akq-trump',
+            priority:
+              bot.specialHandType === 'three-aces'
+                ? 1
+                : bot.specialHandType === 'three-sevens'
+                ? 2
+                : 3,
+            playerId: bot.sessionId,
+            description: `${bot.displayName} has ${bot.specialHandType}`,
+          },
+        ];
+
+        this.log(`Handling special hand win for ${bot.displayName}`);
+        await this.handleSpecialHandWin(specialHands);
+      }, thinkingTime);
+
+      return; // Exit early - special hand logic will handle the rest
     }
 
     const thinkingTime = this.getBotThinkingTime(bot.botDifficulty);

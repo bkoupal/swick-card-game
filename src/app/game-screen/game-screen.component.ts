@@ -176,8 +176,15 @@ export class GameScreenComponent implements OnInit {
   getGoingSetPlayers(): Array<{ name: string; amount: number; type: string }> {
     if (!this.game.room?.state) return [];
 
+    const specialHandWinner = this.game.room.state.specialHandWinner;
     const setPlayers = [];
+
     for (const player of this.game.room.state.players.values()) {
+      // Skip special hand winner
+      if (player.sessionId === specialHandWinner) {
+        continue;
+      }
+
       if (player.wentSet && player.setAmount) {
         setPlayers.push({
           name: player.displayName,
@@ -415,7 +422,8 @@ export class GameScreenComponent implements OnInit {
     this.shownMessageKeys.clear();
   }
   ngOnInit() {
-    // ... existing ngOnInit code
+    // Expose for testing - REMOVE IN PRODUCTION
+    (window as any).testGame = this.game;
 
     // Track round state changes to clear shown messages
     let lastRoundState = '';
@@ -437,5 +445,29 @@ export class GameScreenComponent implements OnInit {
   getDealerPlayer() {
     if (!this.game.room?.state) return null;
     return this.game.room.state.players.get(this.game.room.state.dealerId);
+  }
+
+  /**
+   * Should we show the "Play Special Hand" button?
+   */
+  shouldShowPlaySpecialHandButton(): boolean {
+    if (!this.game.room?.state || !this.game.player) {
+      return false;
+    }
+
+    // Only show during trick-taking phase, first trick, and it's the player's turn
+    return (
+      this.game.room.state.roundState === 'turns' &&
+      this.game.room.state.currentTrickNumber === 1 &&
+      this.game.playersTurn &&
+      this.game.player.hasSpecialHand === true
+    );
+  }
+
+  /**
+   * Play the special hand
+   */
+  playSpecialHand() {
+    this.game.playSpecialHand();
   }
 }

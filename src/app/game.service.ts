@@ -178,6 +178,10 @@ export class GameService {
     this.room?.send('knockIn', knockIn);
   }
 
+  public playSpecialHand() {
+    this.room?.send('playSpecialHand');
+  }
+
   public discardDraw() {
     this._room?.send('discardDraw');
   }

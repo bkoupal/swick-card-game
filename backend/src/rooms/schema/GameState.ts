@@ -198,6 +198,10 @@ export class Player extends Schema {
   @type('number') setAmount: number = 0; // Amount player owes for going set
   @type('string') setType: string = ''; // 'single' or 'double' for dealers
 
+  // Special hand tracking
+  @type('boolean') hasSpecialHand: boolean = false; // Whether player has a special hand
+  @type('string') specialHandType: string = ''; // Type of special hand: 'three-aces', 'three-sevens', 'akq-trump'
+
   // Bot Handling
   @type('boolean') isBot: boolean = false;
   @type('string') botDifficulty: string = '';
@@ -256,6 +260,9 @@ export class GameState extends Schema {
   @type('number') specialHandPotValue: number = 0; // Pot value won
   @type('string') specialRoundOutcome: string = '';
   @type('string') specialRoundMessage: string = '';
+
+  // Special hand revelation tracking
+  @type('boolean') specialHandBeingRevealed: boolean = false;
 
   // Messages shown to all players
   @type('boolean') dealerKeptTrumpMessage: boolean = false;
