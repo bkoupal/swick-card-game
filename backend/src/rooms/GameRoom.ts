@@ -1910,8 +1910,8 @@ export class GameRoom extends Room<GameState> {
    * Gets non-dealer players in clockwise order starting from dealer's left
    */
   private getNonDealersInClockwiseOrder(): Player[] {
-    // Get all ready players
-    const allPlayers = [...this.state.players.values()].filter((p) => p.ready);
+    // Get all players in join order (including those not ready - for seating reference)
+    const allPlayers = [...this.state.players.values()];
 
     // Find dealer's position in the array
     const dealerIndex = allPlayers.findIndex(
@@ -1919,15 +1919,20 @@ export class GameRoom extends Room<GameState> {
     );
 
     if (dealerIndex === -1) {
-      this.log(`Error: Dealer not found in ready players`);
+      this.log(`Error: Dealer not found in players list`);
       return [];
     }
 
-    // Create clockwise order starting from dealer's left
+    // Create clockwise order starting from dealer's left (include all for seating order)
     const clockwiseOrder = [];
     for (let i = 1; i < allPlayers.length; i++) {
       const playerIndex = (dealerIndex + i) % allPlayers.length;
-      clockwiseOrder.push(allPlayers[playerIndex]);
+      const player = allPlayers[playerIndex];
+
+      // Only include non-dealer players (ready or not - we filter later based on context)
+      if (player.sessionId !== this.state.dealerId) {
+        clockwiseOrder.push(player);
+      }
     }
 
     this.log(
@@ -2006,13 +2011,24 @@ export class GameRoom extends Room<GameState> {
     this.state.currentTrickNumber = 1;
 
     // First player to dealer's left leads first trick
-    const knockedInPlayers = [...this.state.players.values()]
-      .filter((p) => p.ready && p.knockedIn)
-      .map((p) => p.sessionId);
+    // Get ALL non-dealers in CLOCKWISE order (regardless of ready status for seating)
+    // Then filter for those who are ready and knocked in
+    const knockedInClockwise = this.getNonDealersInClockwiseOrder().filter(
+      (p) => p.ready && p.knockedIn
+    );
 
-    const dealerIndex = knockedInPlayers.indexOf(this.state.dealerId);
-    const firstPlayerIndex = (dealerIndex + 1) % knockedInPlayers.length;
-    this.state.trickLeaderId = knockedInPlayers[firstPlayerIndex];
+    // First non-dealer to dealer's left leads the first trick
+    // (If we reach this point, there must be at least 2 players knocked in)
+    if (knockedInClockwise.length > 0) {
+      this.state.trickLeaderId = knockedInClockwise[0].sessionId;
+    } else {
+      // This should never happen - if only dealer knocked in, game would have ended earlier
+      this.log(
+        `ERROR: No non-dealer knocked-in players found for trick-taking`
+      );
+      this.endRound();
+      return;
+    }
 
     this.log(
       `${

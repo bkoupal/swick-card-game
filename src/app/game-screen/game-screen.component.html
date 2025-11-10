@@ -64,7 +64,7 @@
       </div>
 
       <!-- Show trick values -->
-      <div class="text-sm text-green-200 mt-1">
+      <div class="text-sm text-white mt-1">
         Each trick: {{ getTrickValue() }}¢
       </div>
 
@@ -78,7 +78,7 @@
       </div>
 
       <!-- Total pot preview for next round -->
-      <div *ngIf="getNextRoundBonus() > 0" class="text-green-400 text-xs mt-1">
+      <div *ngIf="getNextRoundBonus() > 0" class="text-white text-xs mt-1">
         (Next pot starts at {{ getNextRoundBonus() + 3 }}¢)
       </div>
     </div>
