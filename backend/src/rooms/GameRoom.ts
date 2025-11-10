@@ -544,23 +544,32 @@ export class GameRoom extends Room<GameState> {
           this.state.currentDiscardPlayerId = this.state.dealerId;
           this.setInactivitySkipTimeout();
         } else {
-          // DEALER PASSED - Handle going set logic immediately
-          this.log(`Dealer passed during knock-in - dealer goes set single`);
+          // DEALER PASSED - Only go set if dealer kept trump card
+          if (this.state.dealerKeptTrump) {
+            this.log(
+              `Dealer passed during knock-in after keeping trump - dealer goes set single`
+            );
 
-          // Dealer goes set single (always single when choosing not to play during knock-in)
-          player.wentSet = true;
-          player.setType = 'single';
-          player.setAmount = this.state.potValue;
-          player.money -= player.setAmount;
+            // Dealer goes set single (always single when choosing not to play during knock-in)
+            player.wentSet = true;
+            player.setType = 'single';
+            player.setAmount = this.state.potValue;
+            player.money -= player.setAmount;
 
-          this.log(
-            `Dealer goes set SINGLE - owes ${player.setAmount}¢ (now has ${player.money}¢)`
-          );
+            this.log(
+              `Dealer goes set SINGLE - owes ${player.setAmount}¢ (now has ${player.money}¢)`
+            );
 
-          // Ensure dealer doesn't go below 0 money
-          if (player.money < 0) {
-            this.log(`Dealer went below 0, setting to 0`);
-            player.money = 0;
+            // Ensure dealer doesn't go below 0 money
+            if (player.money < 0) {
+              this.log(`Dealer went below 0, setting to 0`);
+              player.money = 0;
+            }
+          } else {
+            // Dealer passed WITHOUT keeping trump - just loses ante, no going set
+            this.log(
+              `Dealer passed during knock-in without keeping trump - just loses ante`
+            );
           }
 
           // Add dealer's set amount to next round bonus
