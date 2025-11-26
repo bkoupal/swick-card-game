@@ -1197,11 +1197,12 @@ export class GameRoom extends Room<GameState> {
       // End the round - going set calculation will now be correct
       this.endRoundWithoutTricks();
     } else {
-      // Multiple players remaining - continue with normal discard/draw and trick-taking
+      // Multiple players remaining - proceed directly to trick-taking
+      // (non-dealers have already completed their discard/draw phase)
       this.log(
-        `${remainingPlayers.length} players remaining - continuing game`
+        `${remainingPlayers.length} players remaining - proceeding to trick-taking`
       );
-      this.startDiscardDrawPhase();
+      this.startTrickTakingPhase();
     }
   }
 
