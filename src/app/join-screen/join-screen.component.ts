@@ -26,7 +26,7 @@ export class JoinScreenComponent {
   playerTypes: ('human' | 'bot')[] = ['human', 'human']; // For players 3-6
   botDifficulty: 'easy' | 'medium' | 'hard' = 'easy';
 
-  private randomNames = [
+  private randomNamesDefault = [
     'CardShark',
     'LuckyAce',
     'TrumpMaster',
@@ -47,6 +47,29 @@ export class JoinScreenComponent {
     'FastDeal',
     'TrickTaker',
     'SwiftSwick',
+  ];
+
+  private randomNames = [
+    'Rudolph',
+    'SantaClaus',
+    'Frosty',
+    'Blitzen',
+    'Dasher',
+    'Prancer',
+    'Snowflake',
+    'Jingles',
+    'MrsClaus',
+    'Grinch',
+    'Scrooge',
+    'Tinsel',
+    'CandyCane',
+    'Nutcracker',
+    'Kringle',
+    'Mistletoe',
+    'Gingerbread',
+    'SugarPlum',
+    'Chestnuts',
+    'Krampus',
   ];
 
   constructor(public game: GameService) {

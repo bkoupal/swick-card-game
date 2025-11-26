@@ -170,7 +170,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
   }
 
   generateRandomName(): void {
-    const randomNames = [
+    const randomNamesDefault = [
       'CardShark',
       'LuckyAce',
       'TrumpMaster',
@@ -191,6 +191,29 @@ export class LobbyComponent implements OnInit, OnDestroy {
       'FastDeal',
       'TrickTaker',
       'SwiftSwick',
+    ];
+
+    const randomNames = [
+      'Rudolph',
+      'SantaClaus',
+      'Frosty',
+      'Blitzen',
+      'Dasher',
+      'Prancer',
+      'Snowflake',
+      'Jingles',
+      'MrsClaus',
+      'Grinch',
+      'Scrooge',
+      'Tinsel',
+      'CandyCane',
+      'Nutcracker',
+      'Kringle',
+      'Mistletoe',
+      'Gingerbread',
+      'SugarPlum',
+      'Chestnuts',
+      'Krampus',
     ];
 
     const randomIndex = Math.floor(Math.random() * randomNames.length);

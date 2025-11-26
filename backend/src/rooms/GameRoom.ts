@@ -1269,6 +1269,29 @@ export class GameRoom extends Room<GameState> {
    */
   private generateRandomName(): string {
     const randomNames = [
+      'Rudolph',
+      'SantaClaus',
+      'Frosty',
+      'Blitzen',
+      'Dasher',
+      'Prancer',
+      'Snowflake',
+      'Jingles',
+      'MrsClaus',
+      'Grinch',
+      'Scrooge',
+      'Tinsel',
+      'CandyCane',
+      'Nutcracker',
+      'Kringle',
+      'Mistletoe',
+      'Gingerbread',
+      'SugarPlum',
+      'Chestnuts',
+      'Krampus',
+    ];
+
+    const randomNamesDefault = [
       'CardShark',
       'LuckyAce',
       'TrumpMaster',
