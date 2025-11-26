@@ -245,9 +245,9 @@
         [class.room-joinable]="canJoinRoom(room)"
         [class.room-locked]="!canJoinRoom(room)"
       >
+        <h2 class="room-name">{{ room.name }}</h2>
         <!-- Room Header -->
         <div class="room-header">
-          <h3 class="room-name">{{ room.name }}</h3>
           <span class="room-id">ID: {{ room.roomId }}</span>
           <span
             class="room-status"

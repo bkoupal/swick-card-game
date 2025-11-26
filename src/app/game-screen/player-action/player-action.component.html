@@ -22,27 +22,6 @@
     </div>
   </div>
 
-  <!-- SWICK Going Set Bonus Display (Dealer Only) - SHOW when players went set -->
-  <div
-    *ngIf="!readyMenuHidden && isDealer && !ready && hasGoingSetBonus"
-    class="grid gap-1"
-  >
-    <span class="text-center table-font text-yellow-400"
-      >One or more players has gone set</span
-    >
-    <div
-      class="text-center bg-red-900 rounded px-3 py-2 border-2 border-red-600"
-    >
-      <div class="text-lg font-bold text-red-300">
-        {{ goingSetBonusAmount }}¢
-      </div>
-      <div class="text-xs text-red-400 mb-2">Total Set Amounts</div>
-      <div class="text-sm text-yellow-300">
-        Only dealer pays 3¢ ante this round
-      </div>
-    </div>
-  </div>
-
   <!-- Trump Selection Menu (only for dealer) -->
   <div class="pill-menu" *ngIf="trumpSelectionMenuVisible">
     <!--span class="whitespace-normal">Trump Card: {{ trumpCardDisplay }}</span-->
@@ -308,6 +287,27 @@
         class="flex-grow text-center p-2 font-medium px-3 rounded-md bg-green-600 text-white"
       >
         ✓ Ready
+      </div>
+    </div>
+  </div>
+
+  <!-- SWICK Going Set Bonus Display (Dealer Only) - SHOW when players went set -->
+  <div
+    *ngIf="!readyMenuHidden && isDealer && !ready && hasGoingSetBonus"
+    class="grid gap-1"
+  >
+    <span class="text-center table-font text-yellow-400 !text-lg"
+      >One or more players has gone set</span
+    >
+    <div
+      class="text-center bg-red-900 rounded px-3 py-2 border-2 border-red-600"
+    >
+      <div class="text-lg font-bold text-red-300">
+        {{ goingSetBonusAmount }}¢
+      </div>
+      <div class="text-xs text-red-400 mb-2">Total Set Amounts</div>
+      <div class="text-sm text-yellow-300">
+        Only dealer pays 3¢ ante this round
       </div>
     </div>
   </div>
