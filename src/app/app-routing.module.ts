@@ -5,6 +5,7 @@ import { GameGuardService } from './game-screen/game-guard.service';
 import { JoinScreenComponent } from './join-screen/join-screen.component';
 import { JoinGuardService } from './join-screen/join-guard.service';
 import { LobbyComponent } from './lobby/lobby.component';
+import { RulesComponent } from './rules/rules.component';
 
 const routes: Routes = [
   {
@@ -27,6 +28,7 @@ const routes: Routes = [
     redirectTo: '/lobby',
     pathMatch: 'full',
   },
+  { path: 'rules', component: RulesComponent },
   { path: '**', redirectTo: '/lobby' },
 ];
 

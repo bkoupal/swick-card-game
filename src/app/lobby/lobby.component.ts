@@ -281,4 +281,8 @@ export class LobbyComponent implements OnInit, OnDestroy {
   getAdvancedOptionsDescription(): string {
     return 'Configure game settings, add bots, and set privacy options';
   }
+
+  goToRules(): void {
+    this.router.navigate(['/rules']);
+  }
 }

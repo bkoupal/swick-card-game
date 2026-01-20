@@ -1,0 +1,318 @@
+<div class="rules-container">
+  <div class="rules-header">
+    <button
+      mat-icon-button
+      class="back-button"
+      routerLink="/lobby"
+      matTooltip="Back to Lobby"
+    >
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1 class="rules-title">
+      <span class="suit black">♠</span><span class="suit red">♥</span>
+      The Rules of SWICK
+      <span class="suit black">♣</span><span class="suit red">♦</span>
+    </h1>
+    <p class="rules-subtitle">A Classic Card Game</p>
+  </div>
+
+  <div class="rules-content">
+    <!-- The Deck -->
+    <section class="rule-section">
+      <h2><mat-icon>style</mat-icon> The Deck</h2>
+      <p>
+        Standard deck without 2's through 6's. No Jokers.
+        <strong>Total cards: 32</strong>
+      </p>
+      <p>
+        Ace is highest card, 7 is lowest card except when played per card values
+        below.
+      </p>
+      <div class="card-display">
+        <span class="card">7</span>
+        <span class="card">8</span>
+        <span class="card">9</span>
+        <span class="card">10</span>
+        <span class="card">J</span>
+        <span class="card">Q</span>
+        <span class="card">K</span>
+        <span class="card ace">A</span>
+      </div>
+    </section>
+
+    <!-- The Pot -->
+    <section class="rule-section">
+      <h2><mat-icon>account_balance_wallet</mat-icon> The Pot</h2>
+      <ul>
+        <li>
+          <strong>Minimum 12 cents</strong> - Starting pot value with minimum 3
+          people playing
+        </li>
+        <li>
+          <strong>Minimum ante is 3 cents</strong> per person including dealer
+        </li>
+        <li>
+          <strong>Dealer always antes 3 cents more</strong> than ante value
+        </li>
+        <li><strong>Pot must always be divisible by 3</strong></li>
+      </ul>
+      <div class="example-box">
+        <strong>Example:</strong> Player 1 = 3¢, Player 2 = 3¢, Player 3
+        (Dealer) = 6¢ <br /><strong>Total pot = 12¢</strong> (Three 4¢ Tricks)
+      </div>
+    </section>
+
+    <!-- Objective -->
+    <section class="rule-section">
+      <h2><mat-icon>emoji_events</mat-icon> Objective of Game</h2>
+      <p>
+        Win tricks by playing cards that beat other hands. Each trick is worth
+        <strong>1/3 of the pot</strong>.
+      </p>
+      <p>
+        <strong>Winning a Trick:</strong> A Trick is 1/3 value of the pot. No
+        limit on size of pot.
+      </p>
+      <p>
+        <strong>Going Set:</strong> Players go Set if they do not win at least
+        one trick. They must match the pot for the next hand.
+      </p>
+    </section>
+
+    <!-- Hand Values -->
+    <section class="rule-section highlight">
+      <h2><mat-icon>stars</mat-icon> Hand Values - Highest to Lowest</h2>
+      <div class="hand-rankings">
+        <div class="ranking">
+          <span class="rank-badge gold">1st</span>
+          <strong>3 Aces</strong> - Any suit
+        </div>
+        <div class="ranking">
+          <span class="rank-badge silver">2nd</span>
+          <strong>3 Sevens</strong> - Any suit
+        </div>
+        <div class="ranking">
+          <span class="rank-badge bronze">3rd</span>
+          <strong>Ace, King, Queen of Trump</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- Beginning the Game -->
+    <section class="rule-section">
+      <h2><mat-icon>play_circle</mat-icon> Beginning the Game</h2>
+      <ol>
+        <li><strong>3-6 players</strong> sit around table</li>
+        <li>Shuffle deck <strong>3 times</strong></li>
+        <li>Deal one card at a time face up to each player</li>
+        <li><strong>First person to get an Ace becomes the dealer</strong></li>
+        <li>Dealer announces the ante amount (must make pot divisible by 3)</li>
+        <li>Players ante in to join the hand</li>
+      </ol>
+    </section>
+
+    <!-- The Deal -->
+    <section class="rule-section">
+      <h2><mat-icon>style</mat-icon> The Deal</h2>
+      <ol>
+        <li>Dealer shuffles deck minimum 3 times</li>
+        <li>Person to dealer's right cuts the deck</li>
+        <li>
+          Dealer deals <strong>3 cards face down</strong> to each player (left
+          to right)
+        </li>
+        <li>
+          After all players have 3 cards, dealer turns over the next card - this
+          is the <strong>Trump card</strong>
+        </li>
+        <li>
+          Dealer decides to either:
+          <ul>
+            <li>
+              Place Trump card face up on table (everyone sees it, dealer
+              doesn't keep it)
+            </li>
+            <li>
+              Keep Trump card as part of their hand (must use it, cannot discard
+              it)
+            </li>
+          </ul>
+        </li>
+      </ol>
+    </section>
+
+    <!-- Play Begins -->
+    <section class="rule-section">
+      <h2><mat-icon>casino</mat-icon> Play Begins</h2>
+      <ol>
+        <li>All players except dealer pick up their 3 cards</li>
+        <li>
+          Dealer asks each player (starting left):
+          <strong>"Are you in?"</strong>
+        </li>
+        <li>
+          Players respond by:
+          <ul>
+            <li><strong>Knocking</strong> on table = I'm in</li>
+            <li><strong>"I Pass"</strong> = I'm out (lose ante)</li>
+          </ul>
+        </li>
+        <li>
+          Dealer asks players who are in:
+          <strong>"How many cards would you like?"</strong>
+        </li>
+        <li>Players may discard up to 3 cards and draw replacements</li>
+        <li>Dealer then looks at their cards and may also discard/draw</li>
+        <li>
+          If dealer kept Trump card and draws 3 new cards, they must discard 1
+          to end with 3 cards
+        </li>
+      </ol>
+    </section>
+
+    <!-- Play Continues -->
+    <section class="rule-section">
+      <h2><mat-icon>trending_up</mat-icon> Playing Tricks</h2>
+      <div class="rule-detail">
+        <h3>First Card Played:</h3>
+        <ul>
+          <li>First player (left of dealer) plays a card face up</li>
+          <li>
+            <strong>Special Rule:</strong> If you have Ace of Trump, you MUST
+            lead with it on the first play
+          </li>
+          <li>If no Ace of Trump, play any card</li>
+        </ul>
+      </div>
+
+      <div class="rule-detail">
+        <h3>Following Players Must:</h3>
+        <ol>
+          <li><strong>Follow suit</strong> if possible (play same suit)</li>
+          <li>
+            <strong>Beat the card</strong> if you can (play higher card of same
+            suit)
+          </li>
+          <li>
+            If you can't follow suit, <strong>play a Trump card</strong> if you
+            have one
+          </li>
+          <li>If you can't follow suit or Trump, play any card</li>
+        </ol>
+      </div>
+
+      <div class="rule-detail">
+        <h3>Winning the Trick:</h3>
+        <p>
+          Highest card of the suit led wins, UNLESS a Trump card is played -
+          then highest Trump wins.
+        </p>
+        <p>Winner of the trick leads the next round.</p>
+        <p>Play continues until all 3 cards are played (3 tricks total).</p>
+      </div>
+    </section>
+
+    <!-- Special Dealer Rules -->
+    <section class="rule-section highlight">
+      <h2>
+        <mat-icon>warning</mat-icon> Special Rules for Dealer Keeping Trump Card
+      </h2>
+
+      <div class="dealer-rule">
+        <h3>If Dealer Keeps Ace, King, Queen, or Jack Trump:</h3>
+        <p>
+          <strong>Must win 2 Tricks</strong> or go
+          <strong>Set Double</strong> (match pot twice)
+        </p>
+        <p>
+          If dealer wins only 1 Trick, they keep that amount but must pay double
+          the pot for next hand.
+        </p>
+      </div>
+
+      <div class="dealer-rule">
+        <h3>If Dealer Keeps 10, 9, 8, or 7 Trump:</h3>
+        <p>
+          <strong>Must win 1 Trick</strong> or go
+          <strong>Set Single</strong> (match pot once)
+        </p>
+      </div>
+
+      <div class="dealer-rule">
+        <h3>Set Single Option:</h3>
+        <p>
+          Dealer may choose to go "Set Single" immediately after drawing - don't
+          play the hand, just match the pot.
+        </p>
+      </div>
+    </section>
+
+    <!-- Going Set -->
+    <section class="rule-section">
+      <h2><mat-icon>money_off</mat-icon> Going Set</h2>
+      <p>
+        <strong
+          >A player goes Set when they don't win at least one Trick.</strong
+        >
+      </p>
+      <ul>
+        <li>Player must match the pot value for the next hand</li>
+        <li>
+          Players who passed before playing do NOT pay for next hand (free ride)
+        </li>
+        <li>Dealer always antes 3 cents for next hand</li>
+        <li>
+          If dealer kept a face Trump card (A, K, Q, J) and won only 1 Trick,
+          they go <strong>Set Double</strong> (pay twice the pot)
+        </li>
+      </ul>
+    </section>
+
+    <!-- Ending a Game -->
+    <section class="rule-section">
+      <h2><mat-icon>flag</mat-icon> Ending a Game</h2>
+      <p>Players agree to play to a specific time or person.</p>
+      <p>
+        <strong>Important:</strong> No game shall end when there is a Set still
+        in place. The Set must be broken (played out where pot is divided).
+      </p>
+    </section>
+
+    <!-- Quick Reference -->
+    <section class="rule-section quick-ref">
+      <h2><mat-icon>list</mat-icon> Quick Reference</h2>
+      <div class="ref-grid">
+        <div class="ref-item">
+          <strong>Players:</strong>
+          <span>3-6</span>
+        </div>
+        <div class="ref-item">
+          <strong>Cards per Player:</strong>
+          <span>3</span>
+        </div>
+        <div class="ref-item">
+          <strong>Minimum Pot:</strong>
+          <span>12¢</span>
+        </div>
+        <div class="ref-item">
+          <strong>Minimum Ante:</strong>
+          <span>3¢</span>
+        </div>
+        <div class="ref-item">
+          <strong>Dealer Extra:</strong>
+          <span>+3¢</span>
+        </div>
+        <div class="ref-item">
+          <strong>Tricks per Hand:</strong>
+          <span>3</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <div class="rules-footer">
+      <p>Have Fun Playing SWICK!</p>
+      <p class="author">Game Rules by Gary L. Koupal - April 12, 1999</p>
+    </div>
+  </div>
+</div>

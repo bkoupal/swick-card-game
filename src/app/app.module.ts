@@ -32,6 +32,7 @@ import { LobbyComponent } from './lobby/lobby.component';
 import { GameService } from './game.service';
 import { LobbyService } from './lobby.service';
 import { MatChipsModule } from '@angular/material/chips';
+import { RulesComponent } from './rules/rules.component';
 
 @NgModule({
   declarations: [
@@ -46,6 +47,7 @@ import { MatChipsModule } from '@angular/material/chips';
     KickDialogComponent,
     InputConstrainDirective,
     LobbyComponent,
+    RulesComponent,
   ],
   imports: [
     CommonModule,

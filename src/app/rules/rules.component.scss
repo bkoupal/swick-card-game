@@ -1,0 +1,413 @@
+// Rules Page Styles
+.rules-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  background: linear-gradient(135deg, #0a1929 0%, #1e3a5f 50%, #0a1929 100%);
+  min-height: 100vh;
+  color: white;
+}
+
+.rules-header {
+  text-align: center;
+  margin-bottom: 40px;
+  position: relative;
+
+  .back-button {
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.1);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  .rules-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+
+    .suit {
+      display: inline-block;
+      text-shadow: 0 0 2px rgba(255, 255, 255, 0.8),
+        1px 1px 2px rgba(0, 0, 0, 0.5);
+
+      &.black {
+        color: #000000;
+      }
+
+      &.red {
+        color: #ff0000;
+      }
+    }
+  }
+
+  .rules-subtitle {
+    font-size: 1.2rem;
+    margin: 0;
+    opacity: 0.85;
+    font-style: italic;
+  }
+}
+
+.rules-content {
+  background: rgba(30, 58, 95, 0.3);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.rule-section {
+  margin-bottom: 35px;
+  padding: 25px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border-left: 4px solid #42a5f5;
+
+  &.highlight {
+    background: rgba(66, 165, 245, 0.1);
+    border-left-color: #ffd700;
+  }
+
+  &.quick-ref {
+    background: rgba(76, 175, 80, 0.1);
+    border-left-color: #66bb6a;
+  }
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.8rem;
+    margin: 0 0 15px 0;
+    color: #90caf9;
+
+    mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+    }
+  }
+
+  h3 {
+    font-size: 1.3rem;
+    margin: 15px 0 10px 0;
+    color: #b3d9ff;
+  }
+
+  p {
+    line-height: 1.6;
+    margin: 10px 0;
+    font-size: 1rem;
+  }
+
+  ul,
+  ol {
+    margin: 10px 0;
+    padding-left: 25px;
+
+    li {
+      margin: 8px 0;
+      line-height: 1.6;
+
+      strong {
+        color: #90caf9;
+      }
+    }
+
+    ul {
+      margin-top: 5px;
+
+      li {
+        margin: 5px 0;
+      }
+    }
+  }
+
+  strong {
+    color: #ffd700;
+    font-weight: 600;
+  }
+}
+
+// Card Display
+.card-display {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 20px 0;
+  flex-wrap: wrap;
+
+  .card {
+    background: white;
+    color: #333;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1.3rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    min-width: 40px;
+    text-align: center;
+
+    &.ace {
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      color: #333;
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.5);
+    }
+  }
+}
+
+// Example Box
+.example-box {
+  background: rgba(66, 165, 245, 0.15);
+  border: 1px solid rgba(66, 165, 245, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+
+  strong {
+    color: #90caf9;
+  }
+}
+
+// Hand Rankings
+.hand-rankings {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin: 15px 0;
+
+  .ranking {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+
+    .rank-badge {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      line-height: 40px;
+      text-align: center;
+      border-radius: 50%;
+      font-weight: bold;
+      font-size: 0.9rem;
+
+      &.gold {
+        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+        color: #333;
+        box-shadow: 0 2px 8px rgba(255, 215, 0, 0.5);
+      }
+
+      &.silver {
+        background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+        color: #333;
+        box-shadow: 0 2px 8px rgba(192, 192, 192, 0.5);
+      }
+
+      &.bronze {
+        background: linear-gradient(135deg, #cd7f32 0%, #e6a157 100%);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(205, 127, 50, 0.5);
+      }
+    }
+
+    strong {
+      color: #ffd700;
+    }
+  }
+}
+
+// Rule Details
+.rule-detail {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+
+  h3 {
+    margin-top: 0;
+  }
+
+  p {
+    margin: 8px 0;
+  }
+}
+
+// Dealer Rules
+.dealer-rule {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+
+  h3 {
+    color: #ffd54f;
+    margin-top: 0;
+  }
+
+  p {
+    margin: 8px 0;
+  }
+
+  strong {
+    color: #ffd54f;
+  }
+}
+
+// Quick Reference Grid
+.ref-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin: 15px 0;
+
+  .ref-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    strong {
+      display: block;
+      color: #90caf9;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    span {
+      display: block;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #ffd700;
+    }
+  }
+}
+
+// Footer
+.rules-footer {
+  text-align: center;
+  padding: 30px 20px 20px 20px;
+  margin-top: 40px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+
+  p {
+    margin: 10px 0;
+    font-size: 1.1rem;
+  }
+
+  .author {
+    font-size: 0.9rem;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .rules-container {
+    padding: 12px;
+  }
+
+  .rules-header {
+    .rules-title {
+      font-size: 1.8rem;
+    }
+
+    .rules-subtitle {
+      font-size: 1rem;
+    }
+  }
+
+  .rules-content {
+    padding: 20px;
+  }
+
+  .rule-section {
+    padding: 15px;
+
+    h2 {
+      font-size: 1.4rem;
+
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+      }
+    }
+
+    h3 {
+      font-size: 1.1rem;
+    }
+  }
+
+  .card-display {
+    .card {
+      padding: 8px 12px;
+      font-size: 1.1rem;
+      min-width: 35px;
+    }
+  }
+
+  .hand-rankings {
+    .ranking {
+      font-size: 1rem;
+
+      .rank-badge {
+        width: 35px;
+        height: 35px;
+        line-height: 35px;
+        font-size: 0.8rem;
+      }
+    }
+  }
+
+  .ref-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+
+    .ref-item {
+      padding: 12px;
+
+      strong {
+        font-size: 0.8rem;
+      }
+
+      span {
+        font-size: 1.2rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .rules-header {
+    .rules-title {
+      font-size: 1.5rem;
+    }
+  }
+
+  .rule-section {
+    h2 {
+      font-size: 1.2rem;
+    }
+  }
+
+  .ref-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
