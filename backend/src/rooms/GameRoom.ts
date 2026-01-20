@@ -1268,7 +1268,7 @@ export class GameRoom extends Room<GameState> {
    * Generates a random player name for players who don't provide one
    */
   private generateRandomName(): string {
-    const randomNames = [
+    const randomNamesXmas = [
       'Rudolph',
       'SantaClaus',
       'Frosty',
@@ -1291,7 +1291,7 @@ export class GameRoom extends Room<GameState> {
       'Krampus',
     ];
 
-    const randomNamesDefault = [
+    const randomNames = [
       'CardShark',
       'LuckyAce',
       'TrumpMaster',
