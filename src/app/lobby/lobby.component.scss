@@ -1,157 +1,122 @@
-/* Christmas-themed Lobby Container */
+/* src/app/lobby/lobby.component.scss - CLEAN VERSION (No Duplicates) */
 .lobby-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-  /* Christmas gradient: Deep red to forest green */
-  background: linear-gradient(135deg, #8b0000 0%, #006400 50%, #8b0000 100%);
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   min-height: 100vh;
   color: white;
-  position: relative;
-
-  /* Optional: Falling snow effect */
-  &::before {
-    content: "❄️ ❄️ ❄️ ❄️ ❄️ ❄️ ❄️ ❄️";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    font-size: 20px;
-    color: rgba(255, 255, 255, 0.8);
-    animation: snowfall 10s linear infinite;
-    pointer-events: none;
-  }
-}
-
-@keyframes snowfall {
-  0% {
-    transform: translateY(-50px);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(100vh);
-    opacity: 0;
-  }
 }
 
 .lobby-header {
   text-align: center;
   margin-bottom: 30px;
-  position: relative;
-  padding-top: 40px; /* Space for lights */
-
-  /* Christmas Lights Animation */
-  .christmas-lights {
-    display: flex;
-    justify-content: center;
-    gap: 40px;
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 600px;
-    padding: 10px 0;
-
-    .light {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
-      animation: twinkle 1.5s ease-in-out infinite;
-
-      &.red {
-        background-color: #ff0000;
-        color: #ff0000;
-        animation-delay: 0s;
-      }
-
-      &.green {
-        background-color: #00ff00;
-        color: #00ff00;
-        animation-delay: 0.3s;
-      }
-
-      &.blue {
-        background-color: #4169e1;
-        color: #4169e1;
-        animation-delay: 0.6s;
-      }
-
-      &.yellow {
-        background-color: #ffd700;
-        color: #ffd700;
-        animation-delay: 0.9s;
-      }
-    }
-  }
-
-  @keyframes twinkle {
-    0%,
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.3;
-      transform: scale(0.8);
-    }
-  }
-
-  .title-with-tree {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-
-    .christmas-tree {
-      font-size: 2.5rem;
-      animation: sway 2s ease-in-out infinite;
-    }
-  }
-
-  @keyframes sway {
-    0%,
-    100% {
-      transform: rotate(-5deg);
-    }
-    50% {
-      transform: rotate(5deg);
-    }
-  }
 
   .lobby-title {
     font-size: 2rem;
     font-weight: bold;
     margin: 0;
     color: white;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 0, 0, 0.5),
-      0 0 20px rgba(0, 255, 0, 0.3);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+
+    .suit {
+      display: inline-block;
+      text-shadow: 0 0 2px rgba(255, 255, 255, 0.8),
+        1px 1px 2px rgba(0, 0, 0, 0.5);
+
+      &.black {
+        color: #000000;
+      }
+
+      &.red {
+        color: #ff0000;
+      }
+    }
   }
 
   .lobby-subtitle {
     font-size: 0.9rem;
     margin: 10px 0 0 0;
-    opacity: 0.95;
-    color: #ffd700; /* Gold text for subtitle */
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    opacity: 0.9;
   }
 }
 
+// Memorial Banner
+.memorial-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(10, 25, 41, 0.95) 0%,
+    rgba(30, 58, 95, 0.95) 100%
+  );
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 30px 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.memorial-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.memorial-text {
+  flex: 1;
+  min-width: 300px;
+  max-width: 600px;
+}
+
+.memorial-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0 0 5px 0;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.memorial-name {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin: 0 0 8px 0;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.memorial-service {
+  font-size: 1rem;
+  margin: 0 0 5px 0;
+  color: #90caf9;
+  font-weight: 500;
+}
+
+.memorial-dates {
+  font-size: 0.95rem;
+  margin: 0 0 10px 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+}
+
+.memorial-dedication {
+  font-size: 0.9rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-style: italic;
+  line-height: 1.4;
+}
+
 .player-setup {
-  background: rgba(220, 20, 60, 0.15); /* Crimson red with transparency */
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 30px;
-  border: 2px solid rgba(255, 215, 0, 0.3); /* Gold border */
-  box-shadow: 0 4px 12px rgba(0, 100, 0, 0.2); /* Green shadow */
+  border: 1px solid rgba(255, 255, 255, 0.2);
 
   .name-section {
     margin-bottom: 20px;
@@ -210,14 +175,6 @@
       padding: 0 24px;
       font-size: 1.1rem;
       border-radius: 24px;
-      background: linear-gradient(135deg, #dc143c 0%, #006400 100%) !important;
-      color: white !important;
-      border: 2px solid #ffd700 !important; /* Gold border */
-
-      &:hover {
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
-      }
 
       mat-icon {
         margin-right: 8px;
@@ -411,20 +368,19 @@
     gap: 20px;
 
     .room-card {
-      background: rgba(139, 0, 0, 0.2); /* Dark red tint */
+      background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
       border-radius: 12px;
       padding: 20px;
-      border: 2px solid rgba(255, 215, 0, 0.2); /* Gold border */
+      border: 1px solid rgba(255, 255, 255, 0.2);
       transition: all 0.3s ease;
 
       &.room-joinable {
-        border-color: rgba(0, 255, 0, 0.5); /* Bright green for joinable */
+        border-color: rgba(76, 175, 80, 0.4);
 
         &:hover {
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 255, 0, 0.3);
-          border-color: rgba(255, 215, 0, 0.6); /* Gold on hover */
+          box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
         }
       }
 

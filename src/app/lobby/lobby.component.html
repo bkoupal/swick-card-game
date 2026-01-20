@@ -1,32 +1,35 @@
 <!-- src/app/lobby/lobby.component.html - FIXED VERSION -->
 <div class="lobby-container">
-  <!--div class="lobby-header">
-    <h1 class="lobby-title">♠️♥️ SWICK ♣️♦️</h1>
+  <div class="lobby-header">
+    <!-- Memorial Banner for Uncle Rob -->
+    <div class="memorial-banner">
+      <div class="memorial-content">
+        <div class="memorial-flag">
+          <img
+            src="https://flagcdn.com/w160/us.png"
+            alt="United States Flag"
+            width="80"
+            height="56"
+          />
+        </div>
+        <div class="memorial-text">
+          <h2 class="memorial-title">In Loving Memory of</h2>
+          <h1 class="memorial-name">Robert "Rob" Koupal</h1>
+          <p class="memorial-service">United States Navy Veteran</p>
+          <p class="memorial-dates">August 10, 1955 - December 10, 2025</p>
+          <p class="memorial-dedication">
+            Forever in our hearts. This game is dedicated to his love of SWICK.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <h1 class="lobby-title">
+      <span class="suit black">♠</span><span class="suit red">♥</span> SWICK
+      <span class="suit black">♣</span><span class="suit red">♦</span>
+    </h1>
     <p class="lobby-subtitle">
       Game Lobby. Join an existing game or create your own
-    </p>
-  </div-->
-
-  <div class="lobby-header">
-    <!-- Christmas Lights -->
-    <div class="christmas-lights">
-      <div class="light red"></div>
-      <div class="light green"></div>
-      <div class="light blue"></div>
-      <div class="light yellow"></div>
-      <div class="light red"></div>
-      <div class="light green"></div>
-      <div class="light blue"></div>
-      <div class="light yellow"></div>
-    </div>
-
-    <div class="title-with-tree">
-      <span class="christmas-tree">🎄</span>
-      <h1 class="lobby-title">♠️♥️ SWICK ♣️♦️</h1>
-      <span class="christmas-tree">🎄</span>
-    </div>
-    <p class="lobby-subtitle">
-      🎅 Happy Holidays! Join a game or create your own 🎅
     </p>
   </div>
 
@@ -245,9 +248,9 @@
         [class.room-joinable]="canJoinRoom(room)"
         [class.room-locked]="!canJoinRoom(room)"
       >
-        <h2 class="room-name">{{ room.name }}</h2>
         <!-- Room Header -->
         <div class="room-header">
+          <h3 class="room-name">{{ room.name }}</h3>
           <span class="room-id">ID: {{ room.roomId }}</span>
           <span
             class="room-status"
